@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/second_hand?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
+    username: root
+    password: 200059
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  main:
+    lazy-initialization: true
+
+mybatis-plus:
+  mapper-locations: classpath*:com/qcq/second_hand/mapper/xml/*.xml
+  type-aliases-package: com.qcq.second_hand.entity
+  configuration:
+    mapUnderscoreToCamelCase: true
+    default-fetch-size: 100
+    default-statement-timeout: 30
+    call-setters-on-nulls: true
+
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      schema-run: false
+
+server:
+  port: 8090

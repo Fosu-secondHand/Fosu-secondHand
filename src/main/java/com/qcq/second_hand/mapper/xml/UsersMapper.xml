@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qcq.second_hand.mapper.UsersMapper">
+
+    <select id="findByOpenid" resultType="com.qcq.second_hand.entity.Users">
+        SELECT * FROM users WHERE openid = #{openid}
+    </select>
+
+    <select id="findByPhone" resultType="com.qcq.second_hand.entity.Users">
+        SELECT * FROM users WHERE phone = #{phone}
+    </select>
+
+</mapper>
