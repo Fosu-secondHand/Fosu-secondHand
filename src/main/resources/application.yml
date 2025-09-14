@@ -2,12 +2,29 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/second_hand?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8
     username: root
+<<<<<<< HEAD
     password: 200059
+=======
+    password: 123456
+>>>>>>> 270db6e1260e39194b5b28e745cd66ead0a3c600
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   main:
     lazy-initialization: true
 
+<<<<<<< HEAD
+=======
+  # JPA 核心配置：开启自动建表
+  jpa:
+    hibernate:
+      ddl-auto: update  # 关键！设为 update 会自动建表/更新表（不会删数据）
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect  # 适配 MySQL 8.x（必须正确）
+        format_sql: true  # 可选：格式化 SQL 输出，方便查看
+    show-sql: true  # 可选：打印执行的 SQL（包括建表语句）
+
+>>>>>>> 270db6e1260e39194b5b28e745cd66ead0a3c600
 mybatis-plus:
   mapper-locations: classpath*:com/qcq/second_hand/mapper/xml/*.xml
   type-aliases-package: com.qcq.second_hand.entity

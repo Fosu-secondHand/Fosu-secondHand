@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
  * @Version:
  */
 @Data
-@TableName(value= "Users", autoResultMap = true)
+@TableName(value = "users", autoResultMap = true)
 @Schema(description = "用户实体类")
 public class Users implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -32,11 +32,13 @@ public class Users implements Serializable {
     private String openid;
 
     /** 用户名 */
+    @TableField("username")
     @JsonProperty("Username")
     @Schema(description = "用户名")
     private String username;
 
     /** 头像URL */
+    @TableField("avatar")
     @Schema(description = "头像URL")
     private String avatar;
 
@@ -46,20 +48,22 @@ public class Users implements Serializable {
     private String phone;
 
     /** 注册时间 */
-    @TableField(fill = FieldFill.INSERT)
+    @TableField(value = "datetime", fill = FieldFill.INSERT)
     @Schema(description = "注册时间")
     private LocalDateTime datetime;
 
     /** 最后登录时间 */
-    @TableField(fill = FieldFill.UPDATE)
+    @TableField(value = "last_login", fill = FieldFill.UPDATE)
     @Schema(description = "最后登录时间")
     private LocalDateTime lastLogin;
 
     /** 信用评分 */
+    @TableField("credit_score")
     @Schema(description = "信用评分")
     private Byte creditScore;
 
     /** 用户状态 */
+    @TableField("status")
     @Schema(description = "用户状态")
     private Status status;
 
