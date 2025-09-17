@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qcq.second_hand.entity.other.Status;
 import com.qcq.second_hand.utils.EncryptedFieldTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -28,6 +29,7 @@ public class Users implements Serializable {
     @Id
     @TableId(value = "user_id", type = IdType.AUTO)
     @Schema(description = "用户ID")
+    @Column(name = "user_id")
     private Long userId;
 
     /** 微信OpenID（加密）  */

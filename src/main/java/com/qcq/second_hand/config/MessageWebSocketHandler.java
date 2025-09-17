@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
 
 
 //处理连接、消息接收，并实现向指定用户推送消息的功能
@@ -33,20 +34,31 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
     @Autowired
     private ObjectMapper objectMapper; // JSON序列化工具
 
-
-    // 1. 连接建立时触发：将用户ID与Session绑定
+    /*
+    * 连接建立时触发：将用户ID与Session绑定
+    * 建立连接时自动获取所有关于该用户的会话表
+    * */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         // 从握手拦截器的属性中获取userId
         String userId = (String) session.getAttributes().get("userId");
         if (userId != null) {
             userSessionMap.put(userId, session);
-            System.out.println("用户 " + userId + " 建立WebSocket连接，当前在线数：" + userSessionMap.size());
+            WebSocketSession receiverSession =session;
+
+            List<ChatSession> chatSessionList=messagesService.selectListOfChatSession(Long.parseLong(userId));
+
+            // 2. 将列表转为JSON字符串
+            String json = objectMapper.writeValueAsString(chatSessionList);
+            receiverSession.sendMessage(new TextMessage(json));
+
+            System.out.println("用户 " + userId + " 建立WebSocket连接，当前在线数：" + userSessionMap.size()+"  发送会话表列表成功");
         }
     }
 
-
-    // 2. 接收前端发送的消息（如客户端主动发送的消息）
+    /*
+    * 接收前端发送的消息（如客户端主动发送的消息）如果接收方在线就直接发送给接收方如果不在线就存起，然后更新双方的会话表
+    * */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) throws Exception {
         String userId = (String) session.getAttributes().get("userId");
@@ -80,7 +92,7 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         // 构建要推送的消息对象
         Map<String, Object> pushMsg = new HashMap<>();
         pushMsg.put("type", "single"); // 单聊消息
-        pushMsg.put("sessionId", sessionInfo != null ? sessionInfo.getId() : null);
+        pushMsg.put("sessionId", sessionInfo != null ? sessionInfo.getUserId() : null);
         pushMsg.put("senderId", userId);
         pushMsg.put("senderName", "发送者名称"); // 实际应从用户表查询
         pushMsg.put("content", content);
@@ -98,14 +110,28 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         if (sessionInfo == null) {
             // 创建新会话
             sessionInfo = new ChatSession();
+            sessionInfo.setLastMessage(content);
             sessionInfo.setUserId(Long.parseLong(receiverId));
             sessionInfo.setTargetId(Long.parseLong(userId));
             sessionInfo.setUnreadCount(1);
+            sessionInfo.setLastDate(LocalDateTime.now());
             messagesService.saveChatSession(sessionInfo);
+
+            sessionInfo.setUserId(Long.parseLong(receiverId));
+            sessionInfo.setTargetId(Long.parseLong(userId));
+            messagesService.saveChatSession(sessionInfo);
+
         } else {
+            sessionInfo.setLastDate(LocalDateTime.now());
+            sessionInfo.setLastMessage(content);
             // 更新已有会话
             sessionInfo.setUnreadCount(sessionInfo.getUnreadCount() + 1);
             messagesService.updateChatSession(sessionInfo);
+
+            sessionInfo.setUserId(Long.parseLong(userId));
+            sessionInfo.setTargetId(Long.parseLong(receiverId));
+            sessionInfo.setUnreadCount(0);
+
         }
     }
 
