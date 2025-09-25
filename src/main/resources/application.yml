@@ -39,3 +39,6 @@ logging:
     com.qcq.second_hand: DEBUG
     org.springframework.web: DEBUG
     org.hibernate: DEBUG
+wechat:
+  appid: wx454f609b500bd5be
+  secret: c7441762dc359dbec5ea3dc17cdcfc7a

@@ -42,7 +42,7 @@ public class Users implements Serializable {
 
     /** 头像URL */
     @Schema(description = "头像URL")
-    private String avatar;
+    private String avatar = "";
 
     /** 手机号（加密） */
     @TableField(value = "phone", typeHandler = EncryptedFieldTypeHandler.class)
@@ -72,6 +72,35 @@ public class Users implements Serializable {
     @TableField(value = "address")
     @Schema(description = "用户地址")
     private String address;
+
+    /** 用户昵称 */
+    @Schema(description = "用户昵称")
+    private String nickname;
+
+    /** 性别 */
+    @Schema(description = "性别")
+    private Integer gender;
+
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+    public Integer getGender() {
+        return gender;
+    }
+
+public String getPhone() {
+    return phone;
+}
+
+public void setPhone(String phone) {
+    this.phone = phone;
+}
 
     /**
      * 用户状态枚举
