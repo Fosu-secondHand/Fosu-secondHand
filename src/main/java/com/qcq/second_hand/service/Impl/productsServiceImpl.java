@@ -54,10 +54,14 @@ public class productsServiceImpl implements productsService
         return productsRepository.findByKeyword(keyword);
     }
 
-    public products getGoodDetail(Long productId)
-    {
+    public products getGoodDetail(Long productId) {
         productsRepository.updateViewCount(productId);
-        return productsRepository.findByProductId(productId);
+        products product = productsRepository.findByProductId(productId);
+        if (product != null && product.getSeller() != null) {
+            // 设置卖家地址
+            product.setAddress(product.getSeller().getAddress());
+        }
+        return product;
     }
 
     /*

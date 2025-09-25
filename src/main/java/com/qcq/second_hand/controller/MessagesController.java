@@ -1,10 +1,12 @@
 package com.qcq.second_hand.controller;
 
-
 import com.qcq.second_hand.entity.ChatSession;
 import com.qcq.second_hand.entity.Messages;
 import com.qcq.second_hand.response.response;
 import com.qcq.second_hand.service.MessagesService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.hibernate.grammars.hql.HqlParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Map;
 
-
+@Tag(name = "消息管理", description = "消息相关接口")
 @RestController
 @RequestMapping("/message")
 public class MessagesController {
@@ -24,12 +26,11 @@ public class MessagesController {
     @Autowired
     private MessagesService messagesService;
 
-
-    /*
-    * 前端发送sender，getter，message，senderName保存消息和会话
-    * */
+    @Operation(summary = "发送消息", description = "发送消息并保存会话")
     @PostMapping("/sendMessage")
-    public response sendMessages(@RequestBody Map<String, String> map) {
+    public response sendMessages(
+            @Parameter(description = "消息参数", required = true)
+            @RequestBody Map<String, String> map) {
         // 解析参数（已有代码）
         String sender = map.get("sender");
         String getter = map.get("getter");
@@ -70,5 +71,4 @@ public class MessagesController {
         }
         return response.success("消息新增成功，会话保存成功");
     }
-
 }

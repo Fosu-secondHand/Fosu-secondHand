@@ -3,12 +3,10 @@ package com.qcq.second_hand.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.qcq.second_hand.entity.other.Status;
+import com.qcq.second_hand.entity.other.StatusConverter;
 import com.qcq.second_hand.utils.EncryptedFieldTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -63,11 +61,17 @@ public class Users implements Serializable {
 
     /** 信用评分 */
     @Schema(description = "信用评分")
-    private Byte creditScore;
+    private Integer creditScore;
 
     /** 用户状态 */
     @Schema(description = "用户状态")
+    @Convert(converter = StatusConverter.class)
     private Status status;
+
+    /** 用户地址 */
+    @TableField(value = "address")
+    @Schema(description = "用户地址")
+    private String address;
 
     /**
      * 用户状态枚举

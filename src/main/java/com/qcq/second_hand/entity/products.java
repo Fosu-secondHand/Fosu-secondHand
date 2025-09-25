@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 @Data
 @Entity
 @Table(name = "products")
@@ -49,8 +50,8 @@ public class products {
     @Column(name = "image", nullable = false, columnDefinition = "JSON")
     private List<String> image;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
+    @Convert(converter = ProductStatusConverter.class)
     private productStatus status;
 
     @Column(name = "post_time", nullable = false)
@@ -70,6 +71,8 @@ public class products {
     @Column(name = "want_to_buy", nullable = false)
     private Long wantToBuy;
 
+    @Transient
+    private String address;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_Id", referencedColumnName = "user_Id", insertable = false, updatable = false)
@@ -101,6 +104,13 @@ public class products {
         this.campus = campus;
         this.favoriteCount = favoriteCount;
         this.wantToBuy=wantToBuy;
+    }
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public Long getWantToBuy() {

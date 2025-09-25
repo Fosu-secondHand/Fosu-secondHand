@@ -17,6 +17,8 @@ import java.util.List;
 @Transactional
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements UsersService {
 
+    private static final Integer DEFAULT_CREDIT_SCORE = 100;
+
     @Override
     public Users saveUser(Users user) {
         if (user.getDatetime() == null) {
@@ -25,8 +27,9 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         if (user.getLastLogin() == null) {
             user.setLastLogin(LocalDateTime.now());
         }
+
         if (user.getCreditScore() == null) {
-            user.setCreditScore((byte) 100);
+            user.setCreditScore(DEFAULT_CREDIT_SCORE);
         }
         if (user.getStatus() == null) {
             user.setStatus(Status.ACTIVE);

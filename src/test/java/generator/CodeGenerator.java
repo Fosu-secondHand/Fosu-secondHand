@@ -11,7 +11,7 @@ import java.util.Collections;
 public class CodeGenerator {
     public static void main(String[] args) {
         // 数据库配置
-        String url = "jdbc:mysql://localhost:3306/second_hand?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true";
+        String url = "jdbc:mysql://localhost:3306/second_hand_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true";
         String username = "root";
         String password = "196888mfk";
 
@@ -41,7 +41,7 @@ public class CodeGenerator {
                                 .pathInfo(Collections.singletonMap(OutputFile.xml, xmlOutputDir));
                     })
                     .strategyConfig(builder -> {
-                        builder.addInclude("conversation") // 生成conversation表相关代码
+                        builder.addInclude("orders") // 生成orders表相关代码
                                 .addTablePrefix("t_", "sys_")
                                 .entityBuilder()
                                 .enableLombok()
