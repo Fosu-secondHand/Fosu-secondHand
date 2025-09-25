@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qcq.second_hand.mapper.ChatSessionMapper">
+    <!-- 根据userId查询会话列表 -->
+    <!-- 方法名：selectByUserId，参数：Long userId，返回：List<ChatSession> -->
+    <select id="selectByUserId" parameterType="java.lang.Long" resultType="com.qcq.second_hand.entity.ChatSession">
+        SELECT
+            msg_type,
+            user_id,
+            target_id,
+            unread_count,
+            last_message,
+            last_date
+        FROM
+            chat_session
+        WHERE
+            user_id = #{userId}  -- 核心条件：根据userId字段匹配
+
+    </select>
+
+
+
+</mapper>
