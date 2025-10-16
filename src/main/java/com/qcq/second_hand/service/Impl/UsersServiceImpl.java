@@ -2,8 +2,10 @@ package com.qcq.second_hand.service.Impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qcq.second_hand.entity.Users;
+import com.qcq.second_hand.entity.products; // 添加导入
 import com.qcq.second_hand.entity.other.Status;
 import com.qcq.second_hand.mapper.UsersMapper;
+import com.qcq.second_hand.mapper.ProductsMapper; // 添加导入
 import com.qcq.second_hand.service.UsersService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements UsersService {
 
     private static final Integer DEFAULT_CREDIT_SCORE = 100;
+    private final ProductsMapper productsMapper;
+
 
     @Override
     public Users saveUser(Users user) {
@@ -99,4 +104,12 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
         }
         return user;
     }
+    @Override
+    public List<products> getUserSellingProducts(Long userId) {
+        // 查询用户所有的商品（不管状态如何）
+        return productsMapper.selectAllProductsByUserId(userId);
+    }
+
+
+
 }

@@ -6,12 +6,14 @@ import com.qcq.second_hand.service.UsersService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
+import java.util.HashMap;
+import java.util.Map;
 @Tag(name = "用户管理", description = "用户相关接口")
 @RestController
 @RequestMapping(value = "/users", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -81,4 +83,64 @@ public class UsersController {
             @PathVariable String phone) {
         return response.success(usersService.getUserByPhone(phone));
     }
+    @Operation(summary = "获取当前用户信息", description = "获取当前登录用户的信息")
+    @GetMapping("/info")
+    public Map<String, Object> getCurrentUserInfo(HttpServletRequest request) {
+        // 从请求属性中获取用户ID（由TokenInterceptor设置）
+        Long userId = (Long) request.getAttribute("userId");
+        if (userId == null) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("statusCode", 401);
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("success", false);
+            errorData.put("data", null);
+            errorResponse.put("data", errorData);
+            return errorResponse;
+        }
+
+        Users user = usersService.getUserById(userId);
+        if (user == null) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("statusCode", 404);
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("success", false);
+            errorData.put("data", null);
+            errorResponse.put("data", errorData);
+            return errorResponse;
+        }
+
+        // 构建符合标准格式的响应
+        Map<String, Object> response = new HashMap<>();
+        response.put("statusCode", 200);
+
+        Map<String, Object> dataWrapper = new HashMap<>();
+        dataWrapper.put("success", true);
+
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", user.getUserId());
+        userData.put("username", user.getUsername());
+        userData.put("nickname", user.getNickname());
+        userData.put("avatarUrl", user.getAvatar());
+        userData.put("isLogin", true);
+
+        dataWrapper.put("data", userData);
+        response.put("data", dataWrapper);
+
+        return response;
+    }
+    @Operation(summary = "获取用户正在出售的商品", description = "获取指定用户正在出售的所有商品列表")
+    @GetMapping("/{userId}/selling-products")
+    public response<Object> getUserSellingProducts(
+            @Parameter(description = "用户ID", required = true)
+            @PathVariable Long userId) {
+        try {
+            Object sellingProducts = usersService.getUserSellingProducts(userId);
+            return response.success(sellingProducts);
+        } catch (Exception e) {
+            return new response<>(500, "获取用户商品列表失败: " + e.getMessage(), null);
+        }
+    }
+
+
+
 }

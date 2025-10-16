@@ -7,11 +7,21 @@ import com.qcq.second_hand.repository.productsRepository;
 import com.qcq.second_hand.repository.wishItemRepository;
 import com.qcq.second_hand.repository.usersRepository;
 import com.qcq.second_hand.service.productsService;
+import jakarta.persistence.TypedQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 
 @Service
@@ -32,6 +42,9 @@ public class productsServiceImpl implements productsService
 
     @Autowired
     favoriteRepository favoriteRepository;
+
+    @Autowired
+    private EntityManager entityManager;
 
 
     public categories saveCategories(categories categories)
@@ -148,4 +161,45 @@ public class productsServiceImpl implements productsService
 
         return productsRepository.save(product);
     }
+
+    @Override
+    public List<products> filterProductsByCampusAndCategory(List<String> campuses, List<String> categoryNames) {
+        // 验证校区参数
+        if (campuses != null) {
+            List<String> validCampuses = Arrays.asList("南区", "北区");
+            campuses = campuses.stream()
+                    .filter(validCampuses::contains)
+                    .collect(Collectors.toList());
+        }
+
+        // 验证分类参数
+        if (categoryNames != null) {
+            List<String> validCategories = Arrays.asList("教材书籍", "服饰鞋包", "生活用品", "数码产品", "美妆个护", "交通出行", "其他闲置");
+            categoryNames = categoryNames.stream()
+                    .filter(validCategories::contains)
+                    .collect(Collectors.toList());
+        }
+
+        // 构建查询条件
+        StringBuilder jpql = new StringBuilder("SELECT p FROM products p WHERE 1=1");
+        Map<String, Object> params = new HashMap<>();
+
+        if (campuses != null && !campuses.isEmpty()) {
+            jpql.append(" AND p.campus IN :campuses");
+            params.put("campuses", campuses);
+        }
+
+        if (categoryNames != null && !categoryNames.isEmpty()) {
+            jpql.append(" AND p.category.name IN :categoryNames");
+            params.put("categoryNames", categoryNames);
+        }
+
+        jpql.append(" ORDER BY p.postTime DESC");
+
+        TypedQuery<products> query = entityManager.createQuery(jpql.toString(), products.class);
+        params.forEach(query::setParameter);
+
+        return query.getResultList();
+    }
+
 }

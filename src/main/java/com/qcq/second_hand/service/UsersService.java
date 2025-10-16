@@ -12,4 +12,6 @@ public interface UsersService {
     void deleteUser(Long userId);
     Users getUserByOpenid(String openid);
     Users getUserByPhone(String phone);
+    Object getUserSellingProducts(Long userId);
+
 }

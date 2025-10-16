@@ -54,6 +54,14 @@ public interface productsRepository extends JpaRepository<products,Long> {
     @Query("UPDATE products p SET p.viewCount = p.viewCount + 1 WHERE p.productId = :productId")
     void updateViewCount(@Param("productId") Long productId);
 
+    @EntityGraph(attributePaths = {"seller", "category"})
+@Query("SELECT p FROM products p LEFT JOIN p.category c WHERE " +
+       "(:campuses IS NULL OR p.campus IN :campuses) AND " +
+       "(:categoryNames IS NULL OR c.name IN :categoryNames) " +
+       "ORDER BY p.postTime DESC")
+List<products> findByCampusInAndCategoryNameInOrderByPostTimeDesc(
+    @Param("campuses") List<String> campuses,
+    @Param("categoryNames") List<String> categoryNames);
 
 
 }

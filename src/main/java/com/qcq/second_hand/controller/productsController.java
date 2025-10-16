@@ -3,12 +3,15 @@ package com.qcq.second_hand.controller;
 import com.qcq.second_hand.entity.categories;
 import com.qcq.second_hand.entity.products;
 import com.qcq.second_hand.response.response;
+import com.qcq.second_hand.service.FileUploadService;
 import com.qcq.second_hand.service.Impl.productsServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 @Tag(name = "商品管理", description = "商品相关接口")
 @RestController
@@ -123,6 +126,27 @@ public class productsController {
         }
     }
 
+    @Autowired
+    private FileUploadService fileUploadService; // 需要创建此服务
+
+    @Operation(summary = "上传商品图片", description = "上传商品图片并返回访问URL")
+    @PostMapping("/upload/image")
+    public response uploadImage(@RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return new response(400, "文件不能为空", null);
+            }
+
+            // 上传文件并获取访问URL
+            String imageUrl = fileUploadService.uploadFile(file);
+            return response.success(imageUrl);
+        } catch (Exception e) {
+            System.err.println("图片上传失败: " + e.getMessage());
+            e.printStackTrace();
+            return new response(500, "图片上传失败: " + e.getMessage(), null);
+        }
+    }
+
     @Operation(summary = "上传新的商品分类", description = "创建新的商品分类")
     @PostMapping("/postCategories")
     public response postCategories(
@@ -154,4 +178,23 @@ public class productsController {
             return new response(500, "服务器内部错误: " + e.getMessage(), null);
         }
     }
+    @Operation(summary = "按校区和分类筛选商品", description = "根据校区和分类筛选商品列表")
+    @GetMapping("/filter")
+    public response filterProducts(
+            @Parameter(description = "校区列表(南区/北区)")
+            @RequestParam(name = "campus", required = false) List<String> campuses,
+            @Parameter(description = "分类名称列表")
+            @RequestParam(name = "categories", required = false) List<String> categoryNames) {
+        try {
+            System.out.println("筛选商品，校区: " + campuses + ", 分类: " + categoryNames);
+            Object result = productsServiceImpl.filterProductsByCampusAndCategory(campuses, categoryNames);
+            System.out.println("筛选商品成功，结果数量: " + (result instanceof List ? ((List<?>) result).size() : 0));
+            return response.success(result);
+        } catch (Exception e) {
+            System.err.println("筛选商品时发生错误: " + e.getMessage());
+            e.printStackTrace();
+            return new response(500, "服务器内部错误: " + e.getMessage(), null);
+        }
+    }
+
 }

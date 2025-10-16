@@ -1,24 +1,20 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/second_hand_db?useSSL=false&serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/second_hand_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8&allowPublicKeyRetrieval=true
     username: root
     password: 196888mfk
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      minimum-idle: 5
-      maximum-pool-size: 20
-      idle-timeout: 300000
-      max-lifetime: 600000
-      connection-timeout: 30000
-
   jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+  main:
+    lazy-initialization: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  web:
+    resources:
+      static-locations: file:./uploads/,classpath:/static/
 
 mybatis-plus:
   mapper-locations: classpath*:com/qcq/second_hand/mapper/xml/*.xml
@@ -28,31 +24,33 @@ mybatis-plus:
     default-fetch-size: 100
     default-statement-timeout: 30
     call-setters-on-nulls: true
-    cache-enabled: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      schema-run: false
 
 server:
   port: 8090
-  servlet:
-    context-path: /
-  tomcat:
-    max-connections: 8192
-    accept-count: 100
-    max-threads: 200
-    min-spare-threads: 10
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: always
+    include-exception: true
 
 logging:
   level:
-    root: INFO
+    root: DEBUG
     com.qcq.second_hand: DEBUG
-    org.springframework.web: INFO
-    org.hibernate: INFO
-    org.apache.ibatis: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    org.springframework.web: DEBUG
+    org.hibernate: DEBUG
+wechat:
+  appid: wx454f609b500bd5be
+  secret: c7441762dc359dbec5ea3dc17cdcfc7a
 
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
+app:
+  cover:
+    permanent-path: D:/Project/Fosu-secondHand/covers

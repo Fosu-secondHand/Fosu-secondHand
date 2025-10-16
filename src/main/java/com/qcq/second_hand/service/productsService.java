@@ -25,4 +25,7 @@ public interface productsService {
     public void toggleWant(Long userId,Long productId,String method);
 
     public products updateProducts(products product);
+
+    public List<products> filterProductsByCampusAndCategory(List<String> campuses, List<String> categoryNames);
+
 }

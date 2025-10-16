@@ -19,6 +19,10 @@ public class TokenInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String requestURI = request.getRequestURI();
+        String queryString = request.getQueryString();
+        String fullURL = requestURI + (queryString != null ? "?" + queryString : "");
+        System.out.println("完整请求URL: " + fullURL);
         // 从请求头中获取token
         String token = request.getHeader("Authorization");
 
