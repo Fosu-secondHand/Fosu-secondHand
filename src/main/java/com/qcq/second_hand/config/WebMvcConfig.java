@@ -32,7 +32,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/webjars/**",
                         "/products/upload/image",
                         "/uploads/**",
-                        "/products/filter"
+                        "/products/filter",
+                        "/error"
                 );
     }
     @Override

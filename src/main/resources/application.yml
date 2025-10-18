@@ -15,6 +15,9 @@ spring:
   web:
     resources:
       static-locations: file:./uploads/,classpath:/static/
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
 
 mybatis-plus:
   mapper-locations: classpath*:com/qcq/second_hand/mapper/xml/*.xml
