@@ -22,6 +22,7 @@ spring:
 mybatis-plus:
   mapper-locations: classpath*:com/qcq/second_hand/mapper/xml/*.xml
   type-aliases-package: com.qcq.second_hand.entity
+  type-handlers-package: com.qcq.second_hand.entity.other
   configuration:
     mapUnderscoreToCamelCase: true
     default-fetch-size: 100

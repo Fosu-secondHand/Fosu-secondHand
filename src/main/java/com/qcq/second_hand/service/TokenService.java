@@ -1,8 +1,10 @@
 // src/main/java/com/qcq/second_hand/service/TokenService.java
 package com.qcq.second_hand.service;
 
-import java.util.Map;
+import org.springframework.stereotype.Service;
 
+import java.util.Map;
+@Service
 public interface TokenService {
     String generateToken(Long userId);
     boolean validateToken(String token);

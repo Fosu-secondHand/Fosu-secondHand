@@ -5,7 +5,7 @@ import com.qcq.second_hand.entity.favorite;
 import com.qcq.second_hand.entity.products;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
+import java.util.List;
 @Repository
 public interface favoriteRepository extends JpaRepository<favorite,Long> {
 
@@ -13,5 +13,6 @@ public interface favoriteRepository extends JpaRepository<favorite,Long> {
 
 
     favorite findByUserAndProduct(Users user, products product);
-
+    List<favorite> findByUser(Users user);
 }
+

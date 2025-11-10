@@ -57,12 +57,18 @@ public class WechatLoginServiceImpl implements WechatLoginService {
             String unionid = (String) wechatResponse.get("unionid");
             String sessionKey = (String) wechatResponse.get("session_key");
 
-            // 查找或创建用户
+            // 查找或创建用户 - 改进的逻辑
             Users user;
             try {
+                // 尝试根据openid查找用户
                 user = usersService.getUserByOpenid(openid);
+                // 用户已存在，更新最后登录时间
+                user.setLastLogin(LocalDateTime.now());
+                usersService.updateUser(user);
+                log.info("用户已存在，更新登录时间: openid={}", openid);
             } catch (Exception e) {
                 // 用户不存在，创建新用户
+                log.info("用户不存在，创建新用户: openid={}", openid);
                 user = new Users();
                 user.setOpenid(openid);
                 user.setUsername("微信用户_" + System.currentTimeMillis());
@@ -73,10 +79,6 @@ public class WechatLoginServiceImpl implements WechatLoginService {
                 user.setPhone("");
                 user = usersService.saveUser(user);
             }
-
-            // 更新用户最后登录时间
-            user.setLastLogin(LocalDateTime.now());
-            usersService.updateUser(user);
 
             // 使用TokenService生成自定义登录态token
             String token = tokenService.generateToken(user.getUserId());
@@ -101,6 +103,7 @@ public class WechatLoginServiceImpl implements WechatLoginService {
 
         return result;
     }
+
 
     @Override
     public Users updateUserInfo(Long userId, Map<String, Object> userInfo) {

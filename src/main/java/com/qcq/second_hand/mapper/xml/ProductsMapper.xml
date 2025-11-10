@@ -3,11 +3,36 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.qcq.second_hand.mapper.ProductsMapper">
 
+    <resultMap id="ProductResultMap" type="com.qcq.second_hand.entity.products">
+        <result property="condition" column="itemCondition" typeHandler="com.qcq.second_hand.entity.other.ConditionTypeHandler"/>
+    </resultMap>
+
     <select id="selectAllProductsByUserId" resultType="com.qcq.second_hand.entity.products">
         SELECT * FROM products
         WHERE seller_Id = #{userId}
         ORDER BY post_time DESC
     </select>
 
+    <select id="selectRecommendedProductsByCategoryId" resultType="com.qcq.second_hand.entity.products">
+        SELECT * FROM products
+        WHERE category_Id = #{categoryId}
+          AND product_Id != #{productId}
+          AND status != 'SOLD'
+        ORDER BY RAND()
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectAllProductsBySellerId" resultType="com.qcq.second_hand.entity.products">
+        SELECT * FROM products
+        WHERE seller_Id = #{sellerId}
+        ORDER BY post_time DESC
+    </select>
+
+    <select id="selectAllProductsByBuyerId" resultType="com.qcq.second_hand.entity.products">
+        SELECT p.* FROM products p
+        INNER JOIN orders o ON p.product_Id = o.product_Id
+        WHERE o.buyer_Id = #{buyerId}
+        ORDER BY o.order_Time DESC
+    </select>
 
 </mapper>

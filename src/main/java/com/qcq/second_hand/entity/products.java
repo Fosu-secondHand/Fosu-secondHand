@@ -34,7 +34,7 @@ public class products {
     private String description;
 
     @Column(name = "favorite_Count", nullable = false)
-    private Long favoriteCount;
+    private Long favoriteCount = 0L;
 
     @Column(name = "category_Id", nullable = false)
     private Long categoryId;
@@ -43,14 +43,16 @@ public class products {
     private BigDecimal price;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "itemCondition", nullable = false, length = 20)
+    @Column(name = "itemCondition", nullable = true, length = 20)
+    @Convert(converter = ConditionConverter.class)
     private Condition condition;
+
 
     @Convert(converter = JsonConverter.class)
     @Column(name = "image", nullable = false, columnDefinition = "JSON")
     private List<String> image;
 
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = true, length = 20)
     @Convert(converter = ProductStatusConverter.class)
     private productStatus status;
 
@@ -63,13 +65,13 @@ public class products {
     private LocalDateTime updateTime;
 
     @Column(name = "view_count", nullable = false)
-    private Integer viewCount;
+    private Integer viewCount =0;
 
     @Column(name = "campus", nullable = false, length = 50)
     private String campus;
 
     @Column(name = "want_to_buy", nullable = false)
-    private Long wantToBuy;
+    private Long wantToBuy =0L;
 
     @Transient
     private String address;
@@ -81,6 +83,11 @@ public class products {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_Id", referencedColumnName = "category_Id", insertable = false, updatable = false)
     private categories category;
+
+
+    @Column(name = "product_type", nullable = false, length = 20)
+    @Convert(converter = ProductTypeConverter.class)
+    private ProductType productType;
 
     public products(){}
 
@@ -104,7 +111,36 @@ public class products {
         this.campus = campus;
         this.favoriteCount = favoriteCount;
         this.wantToBuy=wantToBuy;
+        this.productType = productType;
     }
+    @PrePersist
+    public void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        if (this.postTime == null) {
+            this.postTime = now;
+        }
+        if (this.updateTime == null) {
+            this.updateTime = now;
+        }
+        // 只在创建时设置默认值
+        if (this.favoriteCount == null) {
+            this.favoriteCount = 0L;
+        }
+        if (this.viewCount == null) {
+            this.viewCount = 0;
+        }
+        if (this.wantToBuy == null) {
+            this.wantToBuy = 0L;
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updateTime = LocalDateTime.now();
+        // 更新时不强制设置默认值，保持原值
+    }
+
+
     public String getAddress() {
         return address;
     }
@@ -256,4 +292,13 @@ public class products {
     public void setCategory(categories category) {
         this.category = category;
     }
+
+    public ProductType getProductType() {
+        return productType;
+    }
+
+    public void setProductType(ProductType productType) {
+        this.productType = productType;
+    }
+
 }

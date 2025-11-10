@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 
 
 @Service
@@ -61,26 +62,54 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
     public Users updateUser(Users user) {
         Users existingUser = getUserById(user.getUserId());
 
+        LambdaUpdateWrapper<Users> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(Users::getUserId, user.getUserId());
+
         if (user.getUsername() != null) {
-            existingUser.setUsername(user.getUsername());
+            updateWrapper.set(Users::getUsername, user.getUsername());
         }
         if (user.getAvatar() != null) {
-            existingUser.setAvatar(user.getAvatar());
+            updateWrapper.set(Users::getAvatar, user.getAvatar());
         }
         if (user.getPhone() != null) {
-            existingUser.setPhone(user.getPhone());
+            updateWrapper.set(Users::getPhone, user.getPhone());
         }
         if (user.getCreditScore() != null) {
-            existingUser.setCreditScore(user.getCreditScore());
+            updateWrapper.set(Users::getCreditScore, user.getCreditScore());
         }
         if (user.getStatus() != null) {
-            existingUser.setStatus(user.getStatus());
+            updateWrapper.set(Users::getStatus, user.getStatus());
+        }
+        if (user.getAddress() != null) {
+            updateWrapper.set(Users::getAddress, user.getAddress());
+        }
+        if (user.getNickname() != null) {
+            updateWrapper.set(Users::getNickname, user.getNickname());
+        }
+        if (user.getGender() != null) {
+            updateWrapper.set(Users::getGender, user.getGender());
         }
 
+        updateWrapper.set(Users::getLastLogin, LocalDateTime.now());
+        update(null, updateWrapper);
+
+        // 更新existingUser对象以返回最新数据
+        if (user.getUsername() != null) existingUser.setUsername(user.getUsername());
+        if (user.getAvatar() != null) existingUser.setAvatar(user.getAvatar());
+        if (user.getPhone() != null) existingUser.setPhone(user.getPhone());
+        if (user.getCreditScore() != null) existingUser.setCreditScore(user.getCreditScore());
+        if (user.getStatus() != null) existingUser.setStatus(user.getStatus());
+        if (user.getAddress() != null) existingUser.setAddress(user.getAddress());
+        if (user.getNickname() != null) existingUser.setNickname(user.getNickname());
+        if (user.getGender() != null) existingUser.setGender(user.getGender());
         existingUser.setLastLogin(LocalDateTime.now());
-        updateById(existingUser);
+
         return existingUser;
     }
+
+
+
+
 
     @Override
     public void deleteUser(Long userId) {
@@ -89,12 +118,14 @@ public class UsersServiceImpl extends ServiceImpl<UsersMapper, Users> implements
 
     @Override
     public Users getUserByOpenid(String openid) {
+        // 应该在找不到用户时抛出异常，而不是返回null
         Users user = baseMapper.findByOpenid(openid);
         if (user == null) {
             throw new RuntimeException("用户不存在: " + openid);
         }
         return user;
     }
+
 
     @Override
     public Users getUserByPhone(String phone) {
