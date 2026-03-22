@@ -89,6 +89,13 @@ public class products {
     @Convert(converter = ProductTypeConverter.class)
     private ProductType productType;
 
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity = 1; // 默认数量为1
+
+    @Transient
+    private Integer soldQuantity;
+
+
     public products(){}
 
     public products(Long sellerId, String title, String description,TransactionMethod transactionMethod,
@@ -301,4 +308,19 @@ public class products {
         this.productType = productType;
     }
 
+    public Integer getQuantity() {
+    return quantity;
+    }
+
+    public void setQuantity(Integer quantity) {
+    this.quantity = quantity;
+}
+
+    public Integer getSoldQuantity() {
+        return soldQuantity;
+    }
+
+    public void setSoldQuantity(Integer soldQuantity) {
+        this.soldQuantity = soldQuantity;
+    }
 }

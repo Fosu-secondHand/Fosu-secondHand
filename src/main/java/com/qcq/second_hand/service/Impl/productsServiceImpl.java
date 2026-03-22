@@ -9,6 +9,7 @@ import com.qcq.second_hand.repository.favoriteRepository;
 import com.qcq.second_hand.repository.productsRepository;
 import com.qcq.second_hand.repository.wishItemRepository;
 import com.qcq.second_hand.repository.usersRepository;
+import com.qcq.second_hand.service.OrdersService;
 import com.qcq.second_hand.service.UsersService;
 import com.qcq.second_hand.service.productsService;
 import jakarta.persistence.TypedQuery;
@@ -59,6 +60,9 @@ public class productsServiceImpl implements productsService
 
     @Autowired
     ProductsMapper productsMapper;
+
+    @Autowired
+    private OrdersService ordersService;
     public categories saveCategories(categories categories)
     {
         return categoriesRepository.save(categories);
@@ -85,6 +89,10 @@ public class productsServiceImpl implements productsService
         if (product != null && product.getSeller() != null) {
             // 设置卖家地址
             product.setAddress(product.getSeller().getAddress());
+
+            // 设置已售出数量
+            Integer soldQuantity = ordersService.getSoldQuantityByProductId(productId);
+            product.setSoldQuantity(soldQuantity);
         }
         return product;
     }
@@ -164,7 +172,6 @@ public class productsServiceImpl implements productsService
         }
     }
 
-    // 替换 productsServiceImpl.java 中的 updateProducts 方法
     public products updateProducts(products product) {
         // 获取数据库中现有的商品信息
         products existingProduct = productsRepository.findByProductId(product.getProductId());
@@ -209,9 +216,14 @@ public class productsServiceImpl implements productsService
         if (product.getProductType() == null) {
             product.setProductType(existingProduct.getProductType());
         }
+        // 添加对数量字段的处理
+        if (product.getQuantity() == null) {
+            product.setQuantity(existingProduct.getQuantity());
+        }
 
         return productsRepository.save(product);
     }
+
 
 
     @Override

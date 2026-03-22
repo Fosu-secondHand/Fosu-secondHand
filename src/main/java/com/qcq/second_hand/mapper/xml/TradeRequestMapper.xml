@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.qcq.second_hand.mapper.TradeRequestMapper">
+
+    <!-- 结果映射 - 添加 is_read 映射 -->
+    <resultMap id="TradeRequestResultMap" type="com.qcq.second_hand.entity.TradeRequest">
+        <id property="requestId" column="request_id"/>
+        <result property="productId" column="product_id"/>
+        <result property="buyerId" column="buyer_id"/>
+        <result property="sellerId" column="seller_id"/>
+        <result property="price" column="price"/>
+        <result property="quantity" column="quantity"/>
+        <result property="deliveryMethod" column="delivery_method"/>
+        <result property="buyerRemark" column="buyer_remark"/>
+        <result property="status" column="status" typeHandler="com.qcq.second_hand.entity.other.RequestStatusConverter"/>
+        <result property="isRead" column="is_read"/>
+        <result property="requestTime" column="request_time"/>
+        <result property="responseTime" column="response_time"/>
+    </resultMap>
+
+    <!-- 查询用户收到的交易请求 -->
+    <select id="selectReceivedRequests" resultMap="TradeRequestWithProductResultMap">
+        SELECT
+            tr.request_id,
+            tr.product_id,
+            tr.buyer_id,
+            tr.seller_id,
+            tr.price,
+            tr.quantity,
+            tr.delivery_method,
+            tr.buyer_remark,
+            tr.status,
+            tr.is_read,
+            tr.request_time,
+            tr.response_time,
+            p.title AS product_title,
+            p.image AS product_image,
+            p.status AS product_status,
+            p.quantity AS product_quantity
+        FROM trade_requests tr
+                 LEFT JOIN products p ON tr.product_id = p.product_id
+        WHERE tr.seller_id = #{userId}
+        ORDER BY tr.request_time DESC
+    </select>
+
+    <!-- 查询用户发出的交易请求 -->
+    <select id="selectSentRequests" resultMap="TradeRequestWithProductResultMap">
+        SELECT
+            tr.request_id,
+            tr.product_id,
+            tr.buyer_id,
+            tr.seller_id,
+            tr.price,
+            tr.quantity,
+            tr.delivery_method,
+            tr.buyer_remark,
+            tr.status,
+            tr.is_read,
+            tr.request_time,
+            tr.response_time,
+            p.title AS product_title,
+            p.image AS product_image,
+            p.status AS product_status,
+            p.quantity AS product_quantity
+        FROM trade_requests tr
+                 LEFT JOIN products p ON tr.product_id = p.product_id
+        WHERE tr.buyer_id = #{userId}
+        ORDER BY tr.request_time DESC
+    </select>
+
+    <!-- 新增带商品信息的结果映射 -->
+    <resultMap id="TradeRequestWithProductResultMap" type="com.qcq.second_hand.entity.TradeRequest">
+        <id property="requestId" column="request_id"/>
+        <result property="productId" column="product_id"/>
+        <result property="buyerId" column="buyer_id"/>
+        <result property="sellerId" column="seller_id"/>
+        <result property="price" column="price"/>
+        <result property="quantity" column="quantity"/>
+        <result property="buyerRemark" column="buyer_remark"/>
+        <result property="status" column="status" typeHandler="com.qcq.second_hand.entity.other.RequestStatusConverter"/>
+        <result property="isRead" column="is_read"/>
+        <result property="requestTime" column="request_time"/>
+        <result property="responseTime" column="response_time"/>
+
+        <!-- 映射商品信息 -->
+        <association property="product" javaType="com.qcq.second_hand.entity.products">
+            <result property="title" column="product_title"/>
+            <result property="image" column="product_image" typeHandler="com.qcq.second_hand.entity.other.ImageListTypeHandler"/>
+            <result property="status" column="product_status"/>
+            <result property="quantity" column="product_quantity"/>
+        </association>
+    </resultMap>
+</mapper>

@@ -179,9 +179,19 @@ public response filterProducts(
                 product.setProductType(ProductType.SELL); // 默认为卖闲置
             }
 
+            // 设置默认数量（如果未设置）
+            if (product.getQuantity() == null) {
+                product.setQuantity(1);
+            }
+
             // 验证产品类型
             if (product.getProductType() != ProductType.SELL && product.getProductType() != ProductType.WANT) {
                 return new response(400, "无效的产品类型", null);
+            }
+
+            // 验证数量
+            if (product.getQuantity() <= 0) {
+                return new response(400, "商品数量必须大于0", null);
             }
 
             Object result = productsServiceImpl.saveProducts(product);
@@ -192,6 +202,7 @@ public response filterProducts(
             return new response(500, "服务器内部错误: " + e.getMessage(), null);
         }
     }
+
 
 
     @Autowired
@@ -231,7 +242,7 @@ public response filterProducts(
         }
     }
 
-    // 替换 productsController.java 中的 updateProducts 方法
+
     @Operation(summary = "更新商品信息", description = "更新商品信息")
     @PostMapping("/edit")
     public response updateProducts(
@@ -254,6 +265,11 @@ public response filterProducts(
                 return new response(400, "商品价格不能为负数", null);
             }
 
+            // 验证数量
+            if (product.getQuantity() != null && product.getQuantity() <= 0) {
+                return new response(400, "商品数量必须大于0", null);
+            }
+
             // 图片数据验证
             if (product.getImage() != null) {
                 List<String> validImages = product.getImage().stream()
@@ -271,6 +287,7 @@ public response filterProducts(
             return new response(500, "服务器内部错误: " + e.getMessage(), null);
         }
     }
+
 
 
     //    @Operation(summary = "按校区和分类筛选商品", description = "根据校区和分类筛选商品列表")

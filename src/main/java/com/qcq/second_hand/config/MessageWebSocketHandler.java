@@ -154,4 +154,5 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(message)));
         }
     }
+
 }

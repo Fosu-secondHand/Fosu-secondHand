@@ -5,6 +5,7 @@
 
     <resultMap id="ProductResultMap" type="com.qcq.second_hand.entity.products">
         <result property="condition" column="itemCondition" typeHandler="com.qcq.second_hand.entity.other.ConditionTypeHandler"/>
+        <result property="quantity" column="quantity"/>
     </resultMap>
 
     <select id="selectAllProductsByUserId" resultType="com.qcq.second_hand.entity.products">

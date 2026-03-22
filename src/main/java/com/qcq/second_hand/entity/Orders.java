@@ -78,4 +78,10 @@ public class Orders implements Serializable {
      */
     @TableField("buyer_Remark")
     private String buyerRemark;
+
+    /**
+     * 商品数量
+     */
+    @TableField("quantity")
+    private Integer quantity = 1; // 默认购买数量为1
 }

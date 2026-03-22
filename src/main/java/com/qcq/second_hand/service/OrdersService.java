@@ -11,15 +11,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * @author YOYO
  * @since 2025-09-25
  */
-public interface OrdersService extends IService<Orders> {
 
-    /**
-     * 创建订单并更新商品状态
-     * @param productId 商品ID
-     * @param buyerId 买家ID
-     * @param deliveryMethod 交付方式
-     * @param buyerRemark 买家备注
-     * @return 创建的订单对象
-     */
-    Orders createOrder(Long productId, Long buyerId, String deliveryMethod, String buyerRemark);
+public interface OrdersService extends IService<Orders> {
+    // 删除 createOrder 方法，因为我们只通过交易请求创建订单
+
+    Integer getSoldQuantityByProductId(Long productId);
 }
