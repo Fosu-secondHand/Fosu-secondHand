@@ -51,10 +51,14 @@ logging:
     com.qcq.second_hand: DEBUG
     org.springframework.web: DEBUG
     org.hibernate: DEBUG
+
 wechat:
   appid: wx454f609b500bd5be
   secret: c7441762dc359dbec5ea3dc17cdcfc7a
 
+
 app:
+  upload:
+    path: ./uploads
   cover:
-    permanent-path: D:/Project/Fosu-secondHand/covers
+    permanent-path: ./covers

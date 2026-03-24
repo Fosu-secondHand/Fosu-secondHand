@@ -4,7 +4,6 @@ package com.qcq.second_hand.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
@@ -15,7 +14,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // 添加token拦截器，排除公开接口和Swagger相关接口
+        // 添加 token 拦截器，排除公开接口和 Swagger 相关接口
         registry.addInterceptor(tokenInterceptor)
                 .addPathPatterns("/**")
                 .excludePathPatterns(
@@ -25,7 +24,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/products/search",
                         "/products/detail",
                         "/wechat/updateUserInfo",
-                        // 添加Swagger相关路径排除
+                        // 添加 Swagger 相关路径排除
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-resources/**",
@@ -36,10 +35,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/error"
                 );
     }
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:./uploads/");
-    }
-}
 
+    // 删除 addResourceHandlers 方法，避免与 WebResourceConfig 冲突
+}
