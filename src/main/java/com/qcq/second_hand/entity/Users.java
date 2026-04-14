@@ -81,7 +81,16 @@ public class Users implements Serializable {
     @Schema(description = "性别")
     private Integer gender;
 
+    public String getAvatar() {
+        if (avatar != null && !avatar.startsWith("http") && !avatar.startsWith("/api")) {
+            return "/api" + avatar;
+        }
+        return avatar;
+    }
 
+    public void setAvatar(String avatar) {
+        this.avatar = avatar;
+    }
     public String getNickname() {
         return nickname;
     }

@@ -38,7 +38,7 @@ mybatis-plus:
       schema-run: false
 
 server:
-  port: 8090
+  port: 8080
   error:
     include-message: always
     include-binding-errors: always

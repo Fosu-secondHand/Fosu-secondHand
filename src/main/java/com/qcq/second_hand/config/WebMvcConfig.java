@@ -24,7 +24,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/products/search",
                         "/products/detail",
                         "/wechat/updateUserInfo",
-                        // 添加 Swagger 相关路径排除
                         "/swagger-ui/**",
                         "/v3/api-docs/**",
                         "/swagger-resources/**",

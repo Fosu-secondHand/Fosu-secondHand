@@ -8,6 +8,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Data
@@ -237,6 +238,16 @@ public class products {
     }
 
     public List<String> getImage() {
+        if (image != null) {
+            return image.stream()
+                    .map(img -> {
+                        if (img != null && !img.startsWith("http") && !img.startsWith("/api")) {
+                            return "/api" + img;
+                        }
+                        return img;
+                    })
+                    .collect(Collectors.toList());
+        }
         return image;
     }
 
