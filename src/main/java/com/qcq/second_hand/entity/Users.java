@@ -82,9 +82,31 @@ public class Users implements Serializable {
     private Integer gender;
 
     public String getAvatar() {
-        if (avatar != null && !avatar.startsWith("http") && !avatar.startsWith("/api")) {
+        if (avatar == null || avatar.isEmpty()) {
+            return avatar;
+        }
+
+        // 如果是完整 URL，提取路径部分
+        if (avatar.startsWith("http")) {
+            try {
+                int uploadsIndex = avatar.indexOf("/uploads/");
+                int coversIndex = avatar.indexOf("/covers/");
+
+                if (uploadsIndex >= 0) {
+                    avatar = avatar.substring(uploadsIndex);
+                } else if (coversIndex >= 0) {
+                    avatar = avatar.substring(coversIndex);
+                }
+            } catch (Exception e) {
+                // 如果解析失败，保持原样
+            }
+        }
+
+        // 确保路径以 /api 开头（且不是空字符串）
+        if (!avatar.startsWith("/api") && avatar.startsWith("/")) {
             return "/api" + avatar;
         }
+
         return avatar;
     }
 

@@ -241,15 +241,35 @@ public class products {
         if (image != null) {
             return image.stream()
                     .map(img -> {
-                        if (img != null && !img.startsWith("http") && !img.startsWith("/api")) {
+                        if (img == null || img.isEmpty()) {
+                            return img;
+                        }
+
+                        // 如果是完整 URL，提取路径部分
+                        if (img.startsWith("http")) {
+                            try {
+                                // 从 http://xxx/uploads/xxx.png 提取 /uploads/xxx.png
+                                int uploadsIndex = img.indexOf("/uploads/");
+                                if (uploadsIndex >= 0) {
+                                    img = img.substring(uploadsIndex);
+                                }
+                            } catch (Exception e) {
+                                // 如果解析失败，保持原样
+                            }
+                        }
+
+                        // 确保路径以 /api 开头
+                        if (!img.startsWith("/api")) {
                             return "/api" + img;
                         }
+
                         return img;
                     })
                     .collect(Collectors.toList());
         }
         return image;
     }
+
 
     public void setImage(List<String> image) {
         this.image = image;
