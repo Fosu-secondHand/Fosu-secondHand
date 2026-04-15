@@ -2,6 +2,7 @@ package com.qcq.second_hand.controller;
 
 import com.qcq.second_hand.entity.Users;
 import com.qcq.second_hand.response.response;
+import com.qcq.second_hand.service.FileUploadService;
 import com.qcq.second_hand.service.UsersService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,7 +11,13 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,16 +55,67 @@ public class UsersController {
         return response.success(usersService.getAllUsers());
     }
 
-    @Operation(summary = "更新用户", description = "根据用户ID更新用户信息")
+    @Operation(summary = "更新用户", description = "根据用户ID更新用户信息，支持Base64头像")
     @PutMapping("/{userId}")
     public response<Users> updateUser(
             @Parameter(description = "用户ID", required = true)
             @PathVariable Long userId,
             @Parameter(description = "用户信息", required = true)
             @RequestBody Users user) {
-        user.setUserId(userId);
-        return response.success(usersService.updateUser(user));
+        try {
+            // 验证用户是否存在
+            Users existingUser = usersService.getUserById(userId);
+
+            // 处理 Base64 格式的头像
+            if (user.getAvatar() != null && user.getAvatar().startsWith("data:image")) {
+                try {
+                    // 提取 Base64 数据
+                    String[] parts = user.getAvatar().split(",");
+                    if (parts.length == 2) {
+                        String base64Data = parts[1];
+                        byte[] imageBytes = Base64.getDecoder().decode(base64Data);
+
+                        // 生成文件名
+                        String extension = ".png";
+                        if (user.getAvatar().contains("image/jpeg")) {
+                            extension = ".jpg";
+                        } else if (user.getAvatar().contains("image/webp")) {
+                            extension = ".webp";
+                        }
+
+                        String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + extension;
+
+                        // 创建头像目录
+                        String uploadDir = System.getProperty("user.dir") + "/uploads/avatars";
+                        File dir = new File(uploadDir);
+                        if (!dir.exists()) {
+                            dir.mkdirs();
+                        }
+
+                        // 保存文件
+                        String filePath = uploadDir + "/" + fileName;
+                        Files.write(Paths.get(filePath), imageBytes);
+
+                        // 设置相对路径（会自动通过 Getter 添加 /api 前缀）
+                        user.setAvatar("/uploads/avatars/" + fileName);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Base64头像处理失败: " + e.getMessage());
+                    e.printStackTrace();
+                    // Base64 处理失败，保持原头像不变
+                    user.setAvatar(existingUser.getAvatar());
+                }
+            }
+
+            user.setUserId(userId);
+            return response.success(usersService.updateUser(user));
+        } catch (Exception e) {
+            System.err.println("更新用户失败: " + e.getMessage());
+            e.printStackTrace();
+            return new response<>(500, "更新用户失败: " + e.getMessage(), null);
+        }
     }
+
 
     @Operation(summary = "删除用户", description = "根据用户ID删除用户")
     @DeleteMapping("/{userId}")

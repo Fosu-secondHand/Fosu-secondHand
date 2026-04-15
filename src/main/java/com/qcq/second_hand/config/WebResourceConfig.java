@@ -9,11 +9,19 @@ public class WebResourceConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 映射上传文件目录 - 使用相对路径（自动适配 Windows/Linux）
+        // 映射上传文件目录 - 同时支持带 /api 前缀和不带的情况
+        registry.addResourceHandler("/api/uploads/**")
+                .addResourceLocations("file:./uploads/");
+
+        // 兼容旧路径（不带 /api 前缀）
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:./uploads/");
 
-        // 映射封面文件目录 - 使用相对路径
+        // 映射封面文件目录
+        registry.addResourceHandler("/api/covers/**")
+                .addResourceLocations("file:./covers/");
+
+        // 兼容旧路径
         registry.addResourceHandler("/covers/**")
                 .addResourceLocations("file:./covers/");
     }
