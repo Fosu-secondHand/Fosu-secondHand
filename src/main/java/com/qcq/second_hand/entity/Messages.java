@@ -64,8 +64,13 @@ public class Messages implements Serializable {
 
     /** 消息类型（枚举） */
     @TableField("msg_type")
-    @Schema(description = "消息类型：0-文本，1-图片，2-文件")
+    @Schema(description = "消息类型：0-文本，1-图片，2-文件，3-链接")
     private Integer msgType;
+
+    /** 消息元数据（存储图片URL、链接信息等JSON） */
+    @TableField("metadata")
+    @Schema(description = "消息元数据（JSON格式，存储图片URL、链接标题等）")
+    private String metadata;
 
     /**消息类型枚举 */
     public enum MsgTypeEnum {

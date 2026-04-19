@@ -82,6 +82,8 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
 
             Object receiverIdObj = messageMap.get("receiverId");
             Object contentObj = messageMap.get("content");
+            Object msgTypeObj = messageMap.get("msgType");
+            Object metadataObj = messageMap.get("metadata");
             Object orderIdObj = messageMap.get("orderId");
 
             if (receiverIdObj == null || contentObj == null) {
@@ -91,13 +93,16 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
 
             String receiverId = receiverIdObj.toString();
             String content = contentObj.toString();
+            Integer msgType = msgTypeObj != null ? Integer.parseInt(msgTypeObj.toString()) : 0;
+            String metadata = metadataObj != null ? objectMapper.writeValueAsString(metadataObj) : null;
             String orderId = orderIdObj != null ? orderIdObj.toString() : null;
 
             Messages msg = new Messages();
             msg.setSenderId(Long.parseLong(userId));
             msg.setReceiverId(Long.parseLong(receiverId));
             msg.setContent(content);
-            msg.setMsgType(0);
+            msg.setMsgType(msgType);
+            msg.setMetadata(metadata);
             msg.setIsRead(0);
             msg.setSendTime(LocalDateTime.now());
             msg.setOrderId(orderId != null ? Long.parseLong(orderId) : null);
@@ -115,6 +120,8 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             pushMsg.put("senderId", userId);
             pushMsg.put("senderName", "发送者名称");
             pushMsg.put("content", content);
+            pushMsg.put("msgType", msgType);
+            pushMsg.put("metadata", metadataObj);
             pushMsg.put("sendTime", msg.getSendTime().toString());
             pushMsg.put("msgId", msg.getMessageId());
 
@@ -126,23 +133,24 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
 
             if (sessionInfo == null) {
                 sessionInfo = new ChatSession();
-                sessionInfo.setLastMessage(content);
+                sessionInfo.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                 sessionInfo.setUserId(Long.parseLong(receiverId));
                 sessionInfo.setTargetId(Long.parseLong(userId));
                 sessionInfo.setUnreadCount(1);
                 sessionInfo.setLastDate(LocalDateTime.now());
                 messagesService.saveChatSession(sessionInfo);
 
-                sessionInfo.setUserId(Long.parseLong(userId));
-                sessionInfo.setTargetId(Long.parseLong(receiverId));
-                sessionInfo.setUnreadCount(0);
-                sessionInfo.setLastMessage(content);
-                sessionInfo.setLastDate(LocalDateTime.now());
-                messagesService.saveChatSession(sessionInfo);
+                ChatSession reverseSession = new ChatSession();
+                reverseSession.setUserId(Long.parseLong(userId));
+                reverseSession.setTargetId(Long.parseLong(receiverId));
+                reverseSession.setUnreadCount(0);
+                reverseSession.setLastMessage(getPreviewContent(msgType, content, metadataObj));
+                reverseSession.setLastDate(LocalDateTime.now());
+                messagesService.saveChatSession(reverseSession);
 
             } else {
                 sessionInfo.setLastDate(LocalDateTime.now());
-                sessionInfo.setLastMessage(content);
+                sessionInfo.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                 sessionInfo.setUnreadCount(sessionInfo.getUnreadCount() + 1);
                 messagesService.updateChatSession(sessionInfo);
 
@@ -156,12 +164,12 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
                     reverseSession.setUserId(Long.parseLong(userId));
                     reverseSession.setTargetId(Long.parseLong(receiverId));
                     reverseSession.setUnreadCount(0);
-                    reverseSession.setLastMessage(content);
+                    reverseSession.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                     reverseSession.setLastDate(LocalDateTime.now());
                     messagesService.saveChatSession(reverseSession);
                 } else {
                     reverseSession.setLastDate(LocalDateTime.now());
-                    reverseSession.setLastMessage(content);
+                    reverseSession.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                     messagesService.updateChatSession(reverseSession);
                 }
             }
@@ -171,6 +179,18 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    private String getPreviewContent(Integer msgType, String content, Object metadataObj) {
+        if (msgType == null || msgType == 0) {
+            return content;
+        } else if (msgType == 1) {
+            return "[图片]";
+        } else if (msgType == 2) {
+            return "[文件]";
+        } else if (msgType == 3) {
+            return "[链接]";
+        }
+        return content;
+    }
 
     // 3. 连接关闭时触发：移除用户Session
     @Override

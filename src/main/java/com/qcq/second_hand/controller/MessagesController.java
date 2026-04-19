@@ -29,6 +29,8 @@ public class MessagesController {
     @Autowired
     private com.qcq.second_hand.service.UsersService usersService;
 
+    @Autowired
+    private com.qcq.second_hand.service.FileUploadService fileUploadService;
     @Operation(summary = "获取聊天记录", description = "获取两个用户之间的所有聊天记录")
     @GetMapping("/history")
     public response getChatHistory(
@@ -185,4 +187,21 @@ public class MessagesController {
             return new response(500, "批量标记已读失败：" + e.getMessage(), null);
         }
     }
+    @Operation(summary = "上传聊天图片", description = "上传聊天中的图片并返回访问URL")
+    @PostMapping("/upload/image")
+    public response uploadChatImage(@RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return new response(400, "文件不能为空", null);
+            }
+
+            String imageUrl = fileUploadService.uploadFile(file);
+            return response.success(imageUrl);
+        } catch (Exception e) {
+            System.err.println("聊天图片上传失败: " + e.getMessage());
+            e.printStackTrace();
+            return new response(500, "图片上传失败: " + e.getMessage(), null);
+        }
+    }
+
 }
