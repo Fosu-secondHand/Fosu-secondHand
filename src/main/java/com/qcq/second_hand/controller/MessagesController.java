@@ -2,6 +2,7 @@ package com.qcq.second_hand.controller;
 
 import com.qcq.second_hand.entity.ChatSession;
 import com.qcq.second_hand.entity.Messages;
+import com.qcq.second_hand.entity.Users;
 import com.qcq.second_hand.response.response;
 import com.qcq.second_hand.service.MessagesService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -24,6 +25,9 @@ public class MessagesController {
 
     @Autowired
     private MessagesService messagesService;
+
+    @Autowired
+    private com.qcq.second_hand.service.UsersService usersService;
 
     @Operation(summary = "获取聊天记录", description = "获取两个用户之间的所有聊天记录")
     @GetMapping("/history")
@@ -88,7 +92,7 @@ public class MessagesController {
             return new response(500, "获取聊天记录失败：" + e.getMessage(), null);
         }
     }
-    @Operation(summary = "获取会话列表", description = "获取指定用户的所有聊天会话列表")
+    @Operation(summary = "获取会话列表", description = "获取指定用户的所有聊天会话列表（包含对方用户信息）")
     @GetMapping("/getChatSessionList")
     public response getChatSessionList(
             @Parameter(description = "用户 ID", required = true)
@@ -96,9 +100,29 @@ public class MessagesController {
         try {
             List<ChatSession> sessions = messagesService.selectListOfChatSession(userId);
 
+            List<Map<String, Object>> enhancedSessions = sessions.stream().map(session -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("targetId", session.getTargetId());
+                map.put("userId", session.getUserId());
+                map.put("unreadCount", session.getUnreadCount());
+                map.put("lastMessage", session.getLastMessage());
+                map.put("lastDate", session.getLastDate());
+
+                Users otherUser = usersService.getUserById(session.getTargetId());
+                if (otherUser != null) {
+                    map.put("nickname", otherUser.getNickname());
+                    map.put("avatar", otherUser.getAvatar());
+                } else {
+                    map.put("nickname", "未知用户");
+                    map.put("avatar", "");
+                }
+
+                return map;
+            }).collect(java.util.stream.Collectors.toList());
+
             Map<String, Object> result = new HashMap<>();
-            result.put("sessions", sessions);
-            result.put("count", sessions.size());
+            result.put("sessions", enhancedSessions);
+            result.put("count", enhancedSessions.size());
 
             return response.success(result);
         } catch (Exception e) {

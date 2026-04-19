@@ -3,6 +3,7 @@ package com.qcq.second_hand.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -23,8 +24,10 @@ import java.time.LocalDateTime;
 public class Messages implements Serializable {
     private static final long serialVersionUID = 1L;
 
+
     /** 消息ID */
     @Id
+    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
     @TableId(value = "message_id", type = IdType.AUTO)
     @Schema(description = "消息ID")
     private Long messageId;
