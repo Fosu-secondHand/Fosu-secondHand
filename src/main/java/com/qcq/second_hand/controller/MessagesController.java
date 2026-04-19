@@ -102,6 +102,15 @@ public class MessagesController {
         try {
             List<ChatSession> sessions = messagesService.selectListOfChatSession(userId);
 
+            // 🔍 添加日志：打印查询到的会话数量
+            System.out.println("=== 查询到会话数量: " + sessions.size() + " ===");
+            sessions.forEach(session -> {
+                System.out.println("会话 - targetId: " + session.getTargetId()
+                        + ", lastMessage: " + session.getLastMessage()
+                        + ", lastDate: " + session.getLastDate());
+            });
+
+
             List<Map<String, Object>> enhancedSessions = sessions.stream().map(session -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("targetId", session.getTargetId());
