@@ -40,19 +40,32 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
     * */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // 从握手拦截器的属性中获取userId
         String userId = (String) session.getAttributes().get("userId");
         if (userId != null) {
             userSessionMap.put(userId, session);
-            WebSocketSession receiverSession =session;
 
-            List<ChatSession> chatSessionList=messagesService.selectListOfChatSession(Long.parseLong(userId));
+            try {
+                List<ChatSession> chatSessionList = messagesService.selectListOfChatSession(Long.parseLong(userId));
 
-            // 2. 将列表转为JSON字符串
-            String json = objectMapper.writeValueAsString(chatSessionList);
-            receiverSession.sendMessage(new TextMessage(json));
+                if (chatSessionList == null) {
+                    chatSessionList = new java.util.ArrayList<>();
+                }
 
-            System.out.println("用户 " + userId + " 建立WebSocket连接，当前在线数：" + userSessionMap.size()+"  发送会话表列表成功");
+                String json = objectMapper.writeValueAsString(chatSessionList);
+                session.sendMessage(new TextMessage(json));
+
+                System.out.println("用户 " + userId + " 建立WebSocket连接，当前在线数：" + userSessionMap.size() + "，发送会话列表成功，共 " + chatSessionList.size() + " 条会话");
+            } catch (Exception e) {
+                System.err.println("用户 " + userId + " 建立连接时发送会话列表失败: " + e.getMessage());
+                e.printStackTrace();
+
+                try {
+                    String emptyJson = objectMapper.writeValueAsString(new java.util.ArrayList<>());
+                    session.sendMessage(new TextMessage(emptyJson));
+                } catch (IOException ex) {
+                    System.err.println("发送空会话列表也失败: " + ex.getMessage());
+                }
+            }
         }
     }
 
@@ -64,92 +77,97 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get("userId");
         if (userId == null) return;
 
-        Map<String, Object> messageMap = objectMapper.readValue(textMessage.getPayload(), Map.class);
+        try {
+            Map<String, Object> messageMap = objectMapper.readValue(textMessage.getPayload(), Map.class);
 
-        Object receiverIdObj = messageMap.get("receiverId");
-        Object contentObj = messageMap.get("content");
-        Object orderIdObj = messageMap.get("orderId");
+            Object receiverIdObj = messageMap.get("receiverId");
+            Object contentObj = messageMap.get("content");
+            Object orderIdObj = messageMap.get("orderId");
 
-        if (receiverIdObj == null || contentObj == null) {
-            System.err.println("消息格式错误：缺少必要字段");
-            return;
-        }
+            if (receiverIdObj == null || contentObj == null) {
+                System.err.println("消息格式错误：缺少必要字段");
+                return;
+            }
 
-        String receiverId = receiverIdObj.toString();
-        String content = contentObj.toString();
-        String orderId = orderIdObj != null ? orderIdObj.toString() : null;
+            String receiverId = receiverIdObj.toString();
+            String content = contentObj.toString();
+            String orderId = orderIdObj != null ? orderIdObj.toString() : null;
 
-        Messages msg = new Messages();
-        msg.setSenderId(Long.parseLong(userId));
-        msg.setReceiverId(Long.parseLong(receiverId));
-        msg.setContent(content);
-        msg.setMsgType(0);
-        msg.setIsRead(0);
-        msg.setSendTime(LocalDateTime.now());
-        msg.setOrderId(orderId != null ? Long.parseLong(orderId) : null);
-        messagesService.saveMessage(msg);
-
-
-        ChatSession sessionInfo = messagesService.findSession(
-                Long.parseLong(receiverId),
-                Long.parseLong(userId)
-        );
-
-        Map<String, Object> pushMsg = new HashMap<>();
-        pushMsg.put("type", "single");
-        pushMsg.put("sessionId", sessionInfo != null ? sessionInfo.getUserId() : null);
-        pushMsg.put("senderId", userId);
-        pushMsg.put("senderName", "发送者名称");
-        pushMsg.put("content", content);
-        pushMsg.put("sendTime", msg.getSendTime().toString());
-        pushMsg.put("msgId", msg.getMessageId());
+            Messages msg = new Messages();
+            msg.setSenderId(Long.parseLong(userId));
+            msg.setReceiverId(Long.parseLong(receiverId));
+            msg.setContent(content);
+            msg.setMsgType(0);
+            msg.setIsRead(0);
+            msg.setSendTime(LocalDateTime.now());
+            msg.setOrderId(orderId != null ? Long.parseLong(orderId) : null);
+            messagesService.saveMessage(msg);
 
 
-        WebSocketSession receiverSession = userSessionMap.get(receiverId);
-        if (receiverSession != null && receiverSession.isOpen()) {
-            receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(pushMsg)));
-        }
-
-        if (sessionInfo == null) {
-            sessionInfo = new ChatSession();
-            sessionInfo.setLastMessage(content);
-            sessionInfo.setUserId(Long.parseLong(receiverId));
-            sessionInfo.setTargetId(Long.parseLong(userId));
-            sessionInfo.setUnreadCount(1);
-            sessionInfo.setLastDate(LocalDateTime.now());
-            messagesService.saveChatSession(sessionInfo);
-
-            sessionInfo.setUserId(Long.parseLong(userId));
-            sessionInfo.setTargetId(Long.parseLong(receiverId));
-            sessionInfo.setUnreadCount(0);
-            sessionInfo.setLastMessage(content);
-            sessionInfo.setLastDate(LocalDateTime.now());
-            messagesService.saveChatSession(sessionInfo);
-
-        } else {
-            sessionInfo.setLastDate(LocalDateTime.now());
-            sessionInfo.setLastMessage(content);
-            sessionInfo.setUnreadCount(sessionInfo.getUnreadCount() + 1);
-            messagesService.updateChatSession(sessionInfo);
-
-            ChatSession reverseSession = messagesService.findSession(
-                    Long.parseLong(userId),
-                    Long.parseLong(receiverId)
+            ChatSession sessionInfo = messagesService.findSession(
+                    Long.parseLong(receiverId),
+                    Long.parseLong(userId)
             );
 
-            if (reverseSession == null) {
-                reverseSession = new ChatSession();
-                reverseSession.setUserId(Long.parseLong(userId));
-                reverseSession.setTargetId(Long.parseLong(receiverId));
-                reverseSession.setUnreadCount(0);
-                reverseSession.setLastMessage(content);
-                reverseSession.setLastDate(LocalDateTime.now());
-                messagesService.saveChatSession(reverseSession);
-            } else {
-                reverseSession.setLastDate(LocalDateTime.now());
-                reverseSession.setLastMessage(content);
-                messagesService.updateChatSession(reverseSession);
+            Map<String, Object> pushMsg = new HashMap<>();
+            pushMsg.put("type", "single");
+            pushMsg.put("sessionId", sessionInfo != null ? sessionInfo.getUserId() : null);
+            pushMsg.put("senderId", userId);
+            pushMsg.put("senderName", "发送者名称");
+            pushMsg.put("content", content);
+            pushMsg.put("sendTime", msg.getSendTime().toString());
+            pushMsg.put("msgId", msg.getMessageId());
+
+
+            WebSocketSession receiverSession = userSessionMap.get(receiverId);
+            if (receiverSession != null && receiverSession.isOpen()) {
+                receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(pushMsg)));
             }
+
+            if (sessionInfo == null) {
+                sessionInfo = new ChatSession();
+                sessionInfo.setLastMessage(content);
+                sessionInfo.setUserId(Long.parseLong(receiverId));
+                sessionInfo.setTargetId(Long.parseLong(userId));
+                sessionInfo.setUnreadCount(1);
+                sessionInfo.setLastDate(LocalDateTime.now());
+                messagesService.saveChatSession(sessionInfo);
+
+                sessionInfo.setUserId(Long.parseLong(userId));
+                sessionInfo.setTargetId(Long.parseLong(receiverId));
+                sessionInfo.setUnreadCount(0);
+                sessionInfo.setLastMessage(content);
+                sessionInfo.setLastDate(LocalDateTime.now());
+                messagesService.saveChatSession(sessionInfo);
+
+            } else {
+                sessionInfo.setLastDate(LocalDateTime.now());
+                sessionInfo.setLastMessage(content);
+                sessionInfo.setUnreadCount(sessionInfo.getUnreadCount() + 1);
+                messagesService.updateChatSession(sessionInfo);
+
+                ChatSession reverseSession = messagesService.findSession(
+                        Long.parseLong(userId),
+                        Long.parseLong(receiverId)
+                );
+
+                if (reverseSession == null) {
+                    reverseSession = new ChatSession();
+                    reverseSession.setUserId(Long.parseLong(userId));
+                    reverseSession.setTargetId(Long.parseLong(receiverId));
+                    reverseSession.setUnreadCount(0);
+                    reverseSession.setLastMessage(content);
+                    reverseSession.setLastDate(LocalDateTime.now());
+                    messagesService.saveChatSession(reverseSession);
+                } else {
+                    reverseSession.setLastDate(LocalDateTime.now());
+                    reverseSession.setLastMessage(content);
+                    messagesService.updateChatSession(reverseSession);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("处理消息时发生错误 - 用户ID: " + userId + ", 错误: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
