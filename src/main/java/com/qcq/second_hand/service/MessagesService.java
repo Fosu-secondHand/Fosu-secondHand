@@ -16,7 +16,7 @@ public interface MessagesService {
 
     ChatSession saveChatSession(ChatSession chatSession);
 
-    ChatSession updateChatSession(ChatSession chatSession);
+    int updateChatSession(ChatSession chatSession);
 
     List<ChatSession> selectListOfChatSession(Long userId);
 

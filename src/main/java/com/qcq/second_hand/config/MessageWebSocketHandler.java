@@ -3,7 +3,7 @@ package com.qcq.second_hand.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.qcq.second_hand.entity.ChatSession;
 import com.qcq.second_hand.entity.Messages;
-import com.qcq.second_hand.service.MessagesService;
+import com.qcq.second_hand.entity.Users;
 import com.qcq.second_hand.service.MessagesService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -19,25 +19,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 
 
-//处理连接、消息接收，并实现向指定用户推送消息的功能
 @Component
 public class MessageWebSocketHandler extends TextWebSocketHandler {
 
-    // 1. 线程安全的用户-会话映射表：key=用户ID（String），value=WebSocket会话（WebSocketSession）
     private final Map<String, WebSocketSession> userSessionMap = new ConcurrentHashMap<>();
 
-    // 2. 消息服务：注入后用于操作Messages表（保存、查询消息）
     @Autowired
-    private MessagesService messagesService; // 消息服务（保存消息到数据库）
+    private MessagesService messagesService;
 
-    // 3. JSON工具：用于解析前端发送的JSON消息，以及序列化推送消息
     @Autowired
-    private ObjectMapper objectMapper; // JSON序列化工具
+    private com.qcq.second_hand.service.UsersService usersService;
 
-    /*
-    * 连接建立时触发：将用户ID与Session绑定
-    * 建立连接时自动获取所有关于该用户的会话表
-    * */
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String userId = (String) session.getAttributes().get("userId");
@@ -69,9 +64,6 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    /*
-    * 接收前端发送的消息（如客户端主动发送的消息）如果接收方在线就直接发送给接收方如果不在线就存起，然后更新双方的会话表
-    * */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) throws Exception {
         String userId = (String) session.getAttributes().get("userId");
@@ -114,11 +106,14 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
                     Long.parseLong(userId)
             );
 
+            Users sender = usersService.getUserById(Long.parseLong(userId));
+            String senderName = sender != null ? sender.getNickname() : "未知用户";
+
             Map<String, Object> pushMsg = new HashMap<>();
             pushMsg.put("type", "single");
             pushMsg.put("sessionId", sessionInfo != null ? sessionInfo.getUserId() : null);
             pushMsg.put("senderId", userId);
-            pushMsg.put("senderName", "发送者名称");
+            pushMsg.put("senderName", senderName);
             pushMsg.put("content", content);
             pushMsg.put("msgType", msgType);
             pushMsg.put("metadata", metadataObj);
@@ -133,10 +128,10 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
 
             if (sessionInfo == null) {
                 sessionInfo = new ChatSession();
-                sessionInfo.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                 sessionInfo.setUserId(Long.parseLong(receiverId));
                 sessionInfo.setTargetId(Long.parseLong(userId));
                 sessionInfo.setUnreadCount(1);
+                sessionInfo.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                 sessionInfo.setLastDate(LocalDateTime.now());
                 messagesService.saveChatSession(sessionInfo);
 
@@ -152,7 +147,13 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
                 sessionInfo.setLastDate(LocalDateTime.now());
                 sessionInfo.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                 sessionInfo.setUnreadCount(sessionInfo.getUnreadCount() + 1);
-                messagesService.updateChatSession(sessionInfo);
+                int updated = messagesService.updateChatSession(sessionInfo);
+
+                if (updated == 0) {
+                    System.err.println("更新接收方会话失败，尝试重新创建 - userId: " + receiverId + ", targetId: " + userId);
+                    sessionInfo.setUnreadCount(1);
+                    messagesService.saveChatSession(sessionInfo);
+                }
 
                 ChatSession reverseSession = messagesService.findSession(
                         Long.parseLong(userId),
@@ -170,7 +171,12 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
                 } else {
                     reverseSession.setLastDate(LocalDateTime.now());
                     reverseSession.setLastMessage(getPreviewContent(msgType, content, metadataObj));
-                    messagesService.updateChatSession(reverseSession);
+                    int reverseUpdated = messagesService.updateChatSession(reverseSession);
+
+                    if (reverseUpdated == 0) {
+                        System.err.println("更新发送方会话失败，尝试重新创建 - userId: " + userId + ", targetId: " + receiverId);
+                        messagesService.saveChatSession(reverseSession);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -192,7 +198,6 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         return content;
     }
 
-    // 3. 连接关闭时触发：移除用户Session
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         String userId = (String) session.getAttributes().get("userId");
@@ -203,7 +208,6 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
     }
 
 
-    // 4. 主动推送消息给指定用户（供其他服务调用）
     public void pushMessageToUser(String userId, Map<String, Object> message) throws IOException {
         WebSocketSession session = userSessionMap.get(userId);
         if (session != null && session.isOpen()) {

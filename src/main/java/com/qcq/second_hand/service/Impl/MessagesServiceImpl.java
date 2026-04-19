@@ -78,10 +78,11 @@ public class MessagesServiceImpl implements MessagesService {
     }
 
     @Override
-    public ChatSession updateChatSession(ChatSession chatSession) {
+    public int updateChatSession(ChatSession chatSession) {
         return chatSessionRepository.updateChatSessionByUserIdAndTargetId(
                 chatSession.getUnreadCount(),
                 chatSession.getLastMessage(),
+                chatSession.getLastDate(),
                 chatSession.getUserId(),
                 chatSession.getTargetId()
         );
