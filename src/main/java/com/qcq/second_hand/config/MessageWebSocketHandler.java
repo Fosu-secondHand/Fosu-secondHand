@@ -64,51 +64,53 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
         String userId = (String) session.getAttributes().get("userId");
         if (userId == null) return;
 
-        // 解析前端发送的消息（JSON格式）textMessage.getPayload()：获取前端发送的原始 JSON 字符串；
-        //objectMapper.readValue(...)：将 JSON 字符串解析为 Map，方便提取字段。
-        Map<String, String> messageMap = objectMapper.readValue(textMessage.getPayload(), Map.class);
-        String receiverId = messageMap.get("receiverId"); // 接收者ID
-        String content = messageMap.get("content"); // 消息内容
-        String orderId = messageMap.get("orderId"); // 订单ID（可选）
+        Map<String, Object> messageMap = objectMapper.readValue(textMessage.getPayload(), Map.class);
 
-        // 保存消息到数据库
+        Object receiverIdObj = messageMap.get("receiverId");
+        Object contentObj = messageMap.get("content");
+        Object orderIdObj = messageMap.get("orderId");
+
+        if (receiverIdObj == null || contentObj == null) {
+            System.err.println("消息格式错误：缺少必要字段");
+            return;
+        }
+
+        String receiverId = receiverIdObj.toString();
+        String content = contentObj.toString();
+        String orderId = orderIdObj != null ? orderIdObj.toString() : null;
+
         Messages msg = new Messages();
         msg.setSenderId(Long.parseLong(userId));
         msg.setReceiverId(Long.parseLong(receiverId));
         msg.setContent(content);
-        msg.setMsgType(0); // 0-文本消息
-        msg.setIsRead(0); // 0-未读
+        msg.setMsgType(0);
+        msg.setIsRead(0);
         msg.setSendTime(LocalDateTime.now());
         msg.setOrderId(orderId != null ? Long.parseLong(orderId) : null);
-        messagesService.saveMessage(msg); // 保存消息
+        messagesService.saveMessage(msg);
 
 
-        // 更新会话信息（创建或更新ChatSession）
         ChatSession sessionInfo = messagesService.findSession(
-                Long.parseLong(receiverId), // 会话归属用户（接收者）
-                Long.parseLong(userId)      // 目标用户（发送者）
+                Long.parseLong(receiverId),
+                Long.parseLong(userId)
         );
 
-        // 构建要推送的消息对象
         Map<String, Object> pushMsg = new HashMap<>();
-        pushMsg.put("type", "single"); // 单聊消息
+        pushMsg.put("type", "single");
         pushMsg.put("sessionId", sessionInfo != null ? sessionInfo.getUserId() : null);
         pushMsg.put("senderId", userId);
-        pushMsg.put("senderName", "发送者名称"); // 实际应从用户表查询
+        pushMsg.put("senderName", "发送者名称");
         pushMsg.put("content", content);
         pushMsg.put("sendTime", msg.getSendTime().toString());
         pushMsg.put("msgId", msg.getMessageId());
 
 
-        // 推送消息给接收者（如果接收者在线）
         WebSocketSession receiverSession = userSessionMap.get(receiverId);
         if (receiverSession != null && receiverSession.isOpen()) {
             receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(pushMsg)));
         }
 
-        // 如果会话不存在则创建，存在则更新
         if (sessionInfo == null) {
-            // 创建新会话
             sessionInfo = new ChatSession();
             sessionInfo.setLastMessage(content);
             sessionInfo.setUserId(Long.parseLong(receiverId));
@@ -117,21 +119,37 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             sessionInfo.setLastDate(LocalDateTime.now());
             messagesService.saveChatSession(sessionInfo);
 
-            sessionInfo.setUserId(Long.parseLong(receiverId));
-            sessionInfo.setTargetId(Long.parseLong(userId));
+            sessionInfo.setUserId(Long.parseLong(userId));
+            sessionInfo.setTargetId(Long.parseLong(receiverId));
+            sessionInfo.setUnreadCount(0);
+            sessionInfo.setLastMessage(content);
+            sessionInfo.setLastDate(LocalDateTime.now());
             messagesService.saveChatSession(sessionInfo);
 
         } else {
             sessionInfo.setLastDate(LocalDateTime.now());
             sessionInfo.setLastMessage(content);
-            // 更新已有会话
             sessionInfo.setUnreadCount(sessionInfo.getUnreadCount() + 1);
             messagesService.updateChatSession(sessionInfo);
 
-            sessionInfo.setUserId(Long.parseLong(userId));
-            sessionInfo.setTargetId(Long.parseLong(receiverId));
-            sessionInfo.setUnreadCount(0);
+            ChatSession reverseSession = messagesService.findSession(
+                    Long.parseLong(userId),
+                    Long.parseLong(receiverId)
+            );
 
+            if (reverseSession == null) {
+                reverseSession = new ChatSession();
+                reverseSession.setUserId(Long.parseLong(userId));
+                reverseSession.setTargetId(Long.parseLong(receiverId));
+                reverseSession.setUnreadCount(0);
+                reverseSession.setLastMessage(content);
+                reverseSession.setLastDate(LocalDateTime.now());
+                messagesService.saveChatSession(reverseSession);
+            } else {
+                reverseSession.setLastDate(LocalDateTime.now());
+                reverseSession.setLastMessage(content);
+                messagesService.updateChatSession(reverseSession);
+            }
         }
     }
 
