@@ -1,9 +1,10 @@
-// TradeRequestServiceImpl.java - 完整修改版
 package com.qcq.second_hand.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.qcq.second_hand.entity.ChatSession;
+import com.qcq.second_hand.entity.Messages;
 import com.qcq.second_hand.entity.Orders;
 import com.qcq.second_hand.entity.TradeRequest;
 import com.qcq.second_hand.entity.other.RequestStatus;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class TradeRequestServiceImpl extends ServiceImpl<TradeRequestMapper, TradeRequest> implements TradeRequestService {
@@ -32,6 +35,10 @@ public class TradeRequestServiceImpl extends ServiceImpl<TradeRequestMapper, Tra
 
     @Autowired
     private NotificationPushService notificationService;
+
+    @Autowired
+    private com.qcq.second_hand.service.MessagesService messagesService;
+
 
     @Override
     @Transactional
@@ -66,18 +73,92 @@ public class TradeRequestServiceImpl extends ServiceImpl<TradeRequestMapper, Tra
         tradeRequest.setBuyerId(buyerId);
         tradeRequest.setSellerId(product.getSellerId());
         tradeRequest.setPrice(product.getPrice());
-        tradeRequest.setQuantity(quantity); // 设置购买数量
+        tradeRequest.setQuantity(quantity);
         tradeRequest.setDeliveryMethod(deliveryMethod);
         tradeRequest.setBuyerRemark(buyerRemark);
         tradeRequest.setStatus(RequestStatus.PENDING);
-        tradeRequest.setIsRead(0); // 默认未读
+        tradeRequest.setIsRead(0);
         tradeRequest.setRequestTime(LocalDateTime.now());
 
         // 保存交易请求
         this.save(tradeRequest);
 
-        // 通知卖家有新的交易请求（未读状态）
-        notificationService.notifyTradeRequestStatusChange(tradeRequest, tradeRequest.getSellerId().toString());
+        // ✅ 修复1：在 messages 表中插入一条消息记录（持久化）
+        Messages message = new Messages();
+        message.setSenderId(buyerId);
+        message.setReceiverId(tradeRequest.getSellerId());
+        message.setContent("发起了交易请求");
+        message.setMsgType(3);
+        message.setOrderId(null);
+        message.setIsRead(0);
+        message.setSendTime(LocalDateTime.now());
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("type", "TRADE_REQUEST");
+        metadata.put("requestId", tradeRequest.getRequestId());
+        metadata.put("productId", productId);
+        metadata.put("quantity", quantity);
+        metadata.put("price", tradeRequest.getPrice());
+        metadata.put("deliveryMethod", deliveryMethod);
+        if (buyerRemark != null) {
+            metadata.put("buyerRemark", buyerRemark);
+        }
+
+        try {
+            message.setMetadata(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(metadata));
+        } catch (Exception e) {
+            throw new RuntimeException("消息元数据序列化失败: " + e.getMessage());
+        }
+
+        messagesService.saveMessage(message);
+
+        // ✅ 修复2：确保买卖双方的会话都被正确创建或更新
+        LocalDateTime now = LocalDateTime.now();
+        String lastMessageContent = "[交易请求] 发起了交易请求";
+
+        // 创建/更新卖家的会话（接收方，未读数+1）
+        ChatSession sellerSession = messagesService.findSession(tradeRequest.getSellerId(), buyerId);
+        if (sellerSession == null) {
+            sellerSession = new ChatSession();
+            sellerSession.setUserId(tradeRequest.getSellerId());
+            sellerSession.setTargetId(buyerId);
+            sellerSession.setUnreadCount(1);
+            sellerSession.setLastMessage(lastMessageContent);
+            sellerSession.setLastDate(now);
+            messagesService.saveChatSession(sellerSession);
+        } else {
+            sellerSession.setUnreadCount(sellerSession.getUnreadCount() + 1);
+            sellerSession.setLastMessage(lastMessageContent);
+            sellerSession.setLastDate(now);
+            int updated = messagesService.updateChatSession(sellerSession);
+            if (updated == 0) {
+                System.err.println("更新卖家会话失败，重新创建 - sellerId: " + tradeRequest.getSellerId() + ", buyerId: " + buyerId);
+                messagesService.saveChatSession(sellerSession);
+            }
+        }
+
+        // ✅ 修复3：创建/更新买家的会话（发送方，未读数为0）
+        ChatSession buyerSession = messagesService.findSession(buyerId, tradeRequest.getSellerId());
+        if (buyerSession == null) {
+            buyerSession = new ChatSession();
+            buyerSession.setUserId(buyerId);
+            buyerSession.setTargetId(tradeRequest.getSellerId());
+            buyerSession.setUnreadCount(0);
+            buyerSession.setLastMessage(lastMessageContent);
+            buyerSession.setLastDate(now);
+            messagesService.saveChatSession(buyerSession);
+        } else {
+            buyerSession.setLastMessage(lastMessageContent);
+            buyerSession.setLastDate(now);
+            int updated = messagesService.updateChatSession(buyerSession);
+            if (updated == 0) {
+                System.err.println("更新买家会话失败，重新创建 - buyerId: " + buyerId + ", sellerId: " + tradeRequest.getSellerId());
+                messagesService.saveChatSession(buyerSession);
+            }
+        }
+
+        // ✅ 修复4：使用正确的通知方法（新请求，不是状态变更）
+        notificationService.notifyNewTradeRequest(tradeRequest, tradeRequest.getSellerId().toString());
 
         // 更新卖家的未读消息数
         Integer unreadCount = getUnreadCount(tradeRequest.getSellerId());
@@ -85,6 +166,7 @@ public class TradeRequestServiceImpl extends ServiceImpl<TradeRequestMapper, Tra
 
         return tradeRequest;
     }
+
 
     @Override
     public List<TradeRequest> getReceivedTradeRequests(Long userId) {

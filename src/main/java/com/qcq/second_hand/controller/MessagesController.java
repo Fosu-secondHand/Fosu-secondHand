@@ -117,6 +117,43 @@ public class MessagesController {
                     map.put("type", "file");
                     map.put("content", msg.getContent() != null ? msg.getContent() : "[文件]");
 
+                } else if (msgType == 3) {
+                    // --- 交易请求消息 ---
+                    map.put("type", "trade_request");
+                    map.put("content", msg.getContent() != null ? msg.getContent() : "[交易请求]");
+
+                    // 解析 metadata 中的交易请求信息
+                    if (msg.getMetadata() != null && !msg.getMetadata().isEmpty()) {
+                        try {
+                            com.fasterxml.jackson.databind.JsonNode metaNode =
+                                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(msg.getMetadata());
+
+                            Map<String, Object> tradeRequestData = new HashMap<>();
+                            if (metaNode.has("requestId")) {
+                                tradeRequestData.put("requestId", metaNode.get("requestId").asLong());
+                            }
+                            if (metaNode.has("productId")) {
+                                tradeRequestData.put("productId", metaNode.get("productId").asLong());
+                            }
+                            if (metaNode.has("quantity")) {
+                                tradeRequestData.put("quantity", metaNode.get("quantity").asInt());
+                            }
+                            if (metaNode.has("price")) {
+                                tradeRequestData.put("price", metaNode.get("price").asDouble());
+                            }
+                            if (metaNode.has("deliveryMethod")) {
+                                tradeRequestData.put("deliveryMethod", metaNode.get("deliveryMethod").asText());
+                            }
+                            if (metaNode.has("buyerRemark")) {
+                                tradeRequestData.put("buyerRemark", metaNode.get("buyerRemark").asText());
+                            }
+
+                            map.put("tradeRequest", tradeRequestData);
+                        } catch (Exception e) {
+                            System.err.println("解析交易请求 metadata 失败: " + e.getMessage());
+                        }
+                    }
+
                 } else {
                     // --- 文本消息 (默认) ---
                     map.put("type", "text");
