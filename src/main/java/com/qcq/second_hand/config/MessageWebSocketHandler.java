@@ -85,8 +85,19 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
 
             String receiverId = receiverIdObj.toString();
             String content = contentObj.toString();
+
+            // 1. 获取 msgType
             Integer msgType = msgTypeObj != null ? Integer.parseInt(msgTypeObj.toString()) : 0;
+
+            // 2. 获取 metadata
             String metadata = metadataObj != null ? objectMapper.writeValueAsString(metadataObj) : null;
+
+            // ✅ 智能修复：如果 msgType 是 0 但 metadata 里有 images，自动修正为图片消息
+            if (msgType == 0 && metadata != null && metadata.contains("\"images\"")) {
+                System.out.println("检测到图片元数据但 msgType 为 0，自动修正为 1");
+                msgType = 1;
+            }
+
             String orderId = orderIdObj != null ? orderIdObj.toString() : null;
 
             Messages msg = new Messages();

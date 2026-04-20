@@ -68,32 +68,78 @@ public class MessagesController {
             @Parameter(description = "每页数量", example = "20")
             @RequestParam(defaultValue = "20") int size) {
         try {
-            // 参数验证
             if (userId1 == null || userId2 == null) {
                 return new response(400, "用户 ID 不能为空", null);
             }
 
-            if (page < 1) {
-                page = 1;
-            }
-
-            if (size < 1 || size > 100) {
-                size = 20; // 默认每页 20 条，最大 100 条
-            }
+            if (page < 1) page = 1;
+            if (size < 1 || size > 100) size = 20;
 
             List<Messages> messages = messagesService.getChatHistoryByPage(userId1, userId2, page, size);
 
+            // ✅ 核心优化：在后端统一转换消息格式，适配前端
+            List<Map<String, Object>> formattedMessages = messages.stream().map(msg -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("messageId", msg.getMessageId());
+                map.put("senderId", msg.getSenderId());
+                map.put("receiverId", msg.getReceiverId());
+                map.put("sendTime", msg.getSendTime());
+                map.put("isRead", msg.getIsRead());
+
+                Integer msgType = msg.getMsgType() != null ? msg.getMsgType() : 0;
+                map.put("msgType", msgType);
+
+                // 根据 msgType 智能组装前端需要的 type 和 content
+                if (msgType == 1) {
+                    // --- 图片消息 ---
+                    map.put("type", "image");
+                    String imageUrl = "";
+
+                    if (msg.getMetadata() != null && !msg.getMetadata().isEmpty()) {
+                        try {
+                            // 解析 metadata JSON
+                            com.fasterxml.jackson.databind.JsonNode metaNode =
+                                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(msg.getMetadata());
+
+                            if (metaNode.has("images") && metaNode.get("images").isArray() && metaNode.get("images").size() > 0) {
+                                String relativePath = metaNode.get("images").get(0).asText();
+                                // ✅ 关键：在这里拼接完整 URL，前端直接用即可
+                                imageUrl = "http://139.199.87.181:8080" + relativePath;
+                            }
+                        } catch (Exception e) {
+                            System.err.println("解析图片 metadata 失败: " + e.getMessage());
+                        }
+                    }
+                    map.put("content", imageUrl);
+
+                } else if (msgType == 2) {
+                    // --- 文件消息 ---
+                    map.put("type", "file");
+                    map.put("content", msg.getContent() != null ? msg.getContent() : "[文件]");
+
+                } else {
+                    // --- 文本消息 (默认) ---
+                    map.put("type", "text");
+                    map.put("content", msg.getContent() != null ? msg.getContent() : "");
+                }
+
+                return map;
+            }).collect(java.util.stream.Collectors.toList());
+
             Map<String, Object> result = new HashMap<>();
-            result.put("messages", messages);
+            result.put("messages", formattedMessages);
             result.put("page", page);
             result.put("size", size);
-            result.put("total", messages.size());
+            result.put("total", formattedMessages.size());
 
             return response.success(result);
         } catch (Exception e) {
+            System.err.println("获取聊天记录失败: " + e.getMessage());
+            e.printStackTrace();
             return new response(500, "获取聊天记录失败：" + e.getMessage(), null);
         }
     }
+
     @Operation(summary = "获取会话列表", description = "获取指定用户的所有聊天会话列表（包含对方用户信息）")
     @GetMapping("/getChatSessionList")
     public response getChatSessionList(
