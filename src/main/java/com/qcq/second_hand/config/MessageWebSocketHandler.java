@@ -86,16 +86,31 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             String receiverId = receiverIdObj.toString();
             String content = contentObj.toString();
 
-            // 1. 获取 msgType
-            Integer msgType = msgTypeObj != null ? Integer.parseInt(msgTypeObj.toString()) : 0;
+            // 1. 初步获取 msgType
+            Integer msgType = 0;
+            if (msgTypeObj != null) {
+                try {
+                    msgType = Integer.parseInt(msgTypeObj.toString());
+                } catch (NumberFormatException e) {
+                    msgType = 0;
+                }
+            }
 
-            // 2. 获取 metadata
-            String metadata = metadataObj != null ? objectMapper.writeValueAsString(metadataObj) : null;
+            // 2. 处理 metadata
+            String metadata = null;
+            boolean hasImages = false;
+            if (metadataObj != null) {
+                metadata = objectMapper.writeValueAsString(metadataObj);
+                // ✅ 核心修复：检查 metadata 里是否有 images 数组
+                if (metadata.contains("\"images\"") && metadata.contains("[")) {
+                    hasImages = true;
+                }
+            }
 
-            // ✅ 智能修复：如果 msgType 是 0 但 metadata 里有 images，自动修正为图片消息
-            if (msgType == 0 && metadata != null && metadata.contains("\"images\"")) {
-                System.out.println("检测到图片元数据但 msgType 为 0，自动修正为 1");
+            // 3. ✅ 强制修正逻辑：只要有图片元数据，msgType 必须是 1
+            if (hasImages) {
                 msgType = 1;
+                System.out.println("检测到图片元数据，强制将 msgType 修正为 1");
             }
 
             String orderId = orderIdObj != null ? orderIdObj.toString() : null;
@@ -104,13 +119,13 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             msg.setSenderId(Long.parseLong(userId));
             msg.setReceiverId(Long.parseLong(receiverId));
             msg.setContent(content);
-            msg.setMsgType(msgType);
+            msg.setMsgType(msgType); // 此时 msgType 已经是修正后的值了
             msg.setMetadata(metadata);
             msg.setIsRead(0);
             msg.setSendTime(LocalDateTime.now());
             msg.setOrderId(orderId != null ? Long.parseLong(orderId) : null);
-            messagesService.saveMessage(msg);
 
+            messagesService.saveMessage(msg);
 
             ChatSession sessionInfo = messagesService.findSession(
                     Long.parseLong(receiverId),
@@ -126,17 +141,17 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
             pushMsg.put("senderId", userId);
             pushMsg.put("senderName", senderName);
             pushMsg.put("content", content);
-            pushMsg.put("msgType", msgType);
+            pushMsg.put("msgType", msgType); // ✅ 推送时也使用修正后的 msgType
             pushMsg.put("metadata", metadataObj);
             pushMsg.put("sendTime", msg.getSendTime().toString());
             pushMsg.put("msgId", msg.getMessageId());
-
 
             WebSocketSession receiverSession = userSessionMap.get(receiverId);
             if (receiverSession != null && receiverSession.isOpen()) {
                 receiverSession.sendMessage(new TextMessage(objectMapper.writeValueAsString(pushMsg)));
             }
 
+            // ... 后面的会话更新逻辑保持不变 ...
             if (sessionInfo == null) {
                 sessionInfo = new ChatSession();
                 sessionInfo.setUserId(Long.parseLong(receiverId));
@@ -153,7 +168,6 @@ public class MessageWebSocketHandler extends TextWebSocketHandler {
                 reverseSession.setLastMessage(getPreviewContent(msgType, content, metadataObj));
                 reverseSession.setLastDate(LocalDateTime.now());
                 messagesService.saveChatSession(reverseSession);
-
             } else {
                 sessionInfo.setLastDate(LocalDateTime.now());
                 sessionInfo.setLastMessage(getPreviewContent(msgType, content, metadataObj));
