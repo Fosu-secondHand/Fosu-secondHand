@@ -31,6 +31,9 @@ public class MessagesController {
 
     @Autowired
     private com.qcq.second_hand.service.FileUploadService fileUploadService;
+
+    @Autowired
+    private com.qcq.second_hand.utils.UrlBuilder urlBuilder;
     @Operation(summary = "获取聊天记录", description = "获取两个用户之间的所有聊天记录")
     @GetMapping("/history")
     public response getChatHistory(
@@ -103,8 +106,8 @@ public class MessagesController {
 
                             if (metaNode.has("images") && metaNode.get("images").isArray() && metaNode.get("images").size() > 0) {
                                 String relativePath = metaNode.get("images").get(0).asText();
-                                // ✅ 关键：在这里拼接完整 URL，前端直接用即可
-                                imageUrl = "http://139.199.87.181:8080" + relativePath;
+                                imageUrl = urlBuilder.buildFullUrl(relativePath);
+
                             }
                         } catch (Exception e) {
                             System.err.println("解析图片 metadata 失败: " + e.getMessage());
