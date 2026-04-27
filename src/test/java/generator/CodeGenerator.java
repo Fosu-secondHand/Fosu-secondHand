@@ -13,7 +13,7 @@ public class CodeGenerator {
         // 数据库配置
         String url = "jdbc:mysql://localhost:3306/second_hand_db?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true";
         String username = "root";
-        String password = "196888mfk";
+        String password = "196888mfkMFK!";
 
         // 项目配置
         String outputDir = "D:/Project/Fosu-secondHand/src/main/java";
